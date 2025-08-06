@@ -1,0 +1,22 @@
+# CURSOR AI OPTIMIZATION - Exclude heavy folders from indexing
+imgs/
+docs/
+*.log
+*.png
+*.png~
+*.jpg
+*.jpeg
+*.gif
+*.bmp
+*.ico
+*.svg
+node_modules/
+.git/
+dist/
+build/
+temp/
+tmp/
+cache/
+.cache/
+*.min.js
+*.min.css

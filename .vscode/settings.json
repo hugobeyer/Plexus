@@ -1,0 +1,46 @@
+{
+  "cursor.ai.contextLimit": 50000,
+  "cursor.ai.maxTokens": 4000,
+  "cursor.ai.temperature": 0.3,
+  "files.watcherExclude": {
+    "**/imgs/**": true,
+    "**/docs/**": true,
+    "**/*.log": true,
+    "**/*.png": true,
+    "**/*.jpg": true,
+    "**/*.gif": true
+  },
+  "search.exclude": {
+    "**/imgs": true,
+    "**/docs": true,
+    "**/*.log": true
+  },
+  "files.exclude": {
+    "**/*.log": true
+  },
+  "typescript.preferences.includePackageJsonAutoImports": "off",
+  "javascript.preferences.includePackageJsonAutoImports": "off",
+  "editor.minimap.enabled": false,
+  "editor.bracketPairColorization.enabled": false,
+  "editor.guides.bracketPairs": false,
+  "extensions.autoUpdate": false,
+  "telemetry.telemetryLevel": "off",
+  "cursor.ai.enableCodeActions": false,
+  "cursor.ai.enableInlineCompletion": true,
+  "cursor.ai.maxConcurrentRequests": 2,
+  "editor.suggest.maxVisibleSuggestions": 5,
+  "editor.quickSuggestions": {
+    "other": false,
+    "comments": false,
+    "strings": false
+  },
+  "editor.suggestOnTriggerCharacters": false,
+  "editor.parameterHints.enabled": false,
+  "editor.hover.enabled": false,
+  "editor.lightbulb.enabled": "off",
+  "workbench.settings.enableNaturalLanguageSearch": false,
+  "files.autoSave": "off",
+  "editor.formatOnSave": false,
+  "git.enabled": false,
+  "workbench.startupEditor": "none"
+}

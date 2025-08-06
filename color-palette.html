@@ -1,0 +1,948 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Plexus Node Editor - Color Palette Manager</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #1a1a1a;
+            color: #ffffff;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            color: #4CAF50;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            color: #aaa;
+        }
+
+        .palette-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .color-section {
+            background: #2a2a2a;
+            border-radius: 8px;
+            padding: 20px;
+            border: 1px solid #444;
+        }
+
+        .section-title {
+            color: #4CAF50;
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 15px;
+            border-bottom: 1px solid #444;
+            padding-bottom: 5px;
+        }
+
+        .color-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+            padding: 8px;
+            background: #333;
+            border-radius: 4px;
+        }
+
+        .color-preview {
+            width: 30px;
+            height: 30px;
+            border-radius: 4px;
+            margin-right: 10px;
+            border: 1px solid #555;
+            cursor: pointer;
+        }
+
+        .color-info {
+            flex-grow: 1;
+        }
+
+        .color-name {
+            font-weight: bold;
+            color: #fff;
+            font-size: 14px;
+        }
+
+        .color-value {
+            color: #aaa;
+            font-size: 12px;
+            font-family: 'Courier New', monospace;
+        }
+
+        .color-input {
+            background: transparent;
+            border: none;
+            color: #4CAF50;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            width: 80px;
+        }
+
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .btn {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background 0.3s;
+        }
+
+        .btn:hover {
+            background: #45a049;
+        }
+
+        .btn-secondary {
+            background: #666;
+        }
+
+        .btn-secondary:hover {
+            background: #777;
+        }
+
+        .btn-danger {
+            background: #f44336;
+        }
+
+        .btn-danger:hover {
+            background: #da190b;
+        }
+
+        .status {
+            text-align: center;
+            padding: 10px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .status.success {
+            background: #2e7d32;
+            color: white;
+        }
+
+        .status.error {
+            background: #d32f2f;
+            color: white;
+        }
+
+        .preset-themes {
+            background: #2a2a2a;
+            border-radius: 8px;
+            padding: 20px;
+            border: 1px solid #444;
+            margin-bottom: 20px;
+        }
+
+        .preset-controls {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .preset-load {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .preset-save {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        #presetSelector {
+            flex: 1;
+            min-width: 200px;
+            background: #333;
+            border: 1px solid #666;
+            border-radius: 4px;
+            color: white;
+            padding: 8px;
+            font-family: inherit;
+        }
+
+        #presetName {
+            flex: 1;
+            min-width: 200px;
+            background: #333;
+            border: 1px solid #666;
+            border-radius: 4px;
+            color: white;
+            padding: 8px;
+            font-family: inherit;
+        }
+
+        #presetName::placeholder {
+            color: #aaa;
+        }
+
+        .export-section {
+            background: #2a2a2a;
+            border-radius: 8px;
+            padding: 20px;
+            border: 1px solid #444;
+        }
+
+        .export-textarea {
+            width: 100%;
+            height: 200px;
+            background: #1a1a1a;
+            border: 1px solid #444;
+            border-radius: 4px;
+            color: #4CAF50;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            padding: 10px;
+            resize: vertical;
+        }
+        
+        .opacity-slider {
+            width: 100px;
+            margin-right: 10px;
+            vertical-align: middle;
+        }
+        
+        .opacity-value {
+            color: #4CAF50;
+            font-weight: bold;
+            font-size: 12px;
+            min-width: 40px;
+            display: inline-block;
+        }
+        
+        .alpha-control {
+            margin-top: 8px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .alpha-label {
+            color: #aaa;
+            font-size: 11px;
+            min-width: 40px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+                    <div class="header">
+                <h1>🎨 Plexus Color Palette Manager</h1>
+                <p>Live color editing with ⚡ AUTO-SAVE and index refresh</p>
+            </div>
+
+        <div id="status" class="status"></div>
+
+        <div class="controls">
+            <button class="btn" onclick="saveColors()">💾 Save Colors</button>
+            <button class="btn btn-secondary" onclick="loadColors()">🔄 Reload</button>
+            <button class="btn btn-secondary" onclick="resetToDefaults()">🔧 Reset to Defaults</button>
+            <button class="btn btn-danger" onclick="exportColors()">📤 Export Config</button>
+        </div>
+
+        <div class="preset-themes">
+            <div class="section-title">💾 Custom Presets</div>
+            <div class="preset-controls">
+                <div class="preset-load">
+                    <select id="presetSelector" onchange="loadPreset()">
+                        <option value="">Select a preset...</option>
+                    </select>
+                    <button class="btn btn-secondary" onclick="deletePreset()">🗑️ Delete</button>
+                </div>
+                <div class="preset-save">
+                    <input type="text" id="presetName" placeholder="Enter preset name..." maxlength="30" onkeypress="if(event.key==='Enter') savePreset()">
+                    <button class="btn" onclick="savePreset()">💾 Save Preset</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="palette-grid" id="paletteGrid">
+            <!-- Color sections will be generated here -->
+        </div>
+
+        <div class="export-section">
+            <div class="section-title">📤 Export/Import Configuration</div>
+            <textarea id="exportTextarea" class="export-textarea" placeholder="Exported color configuration will appear here..."></textarea>
+            <div style="margin-top: 10px;">
+                <button class="btn btn-secondary" onclick="importColors()">📥 Import from Textarea</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Default color configuration
+        const defaultColors = {
+            background: {
+                main: '#1a1a1a',
+                secondary: '#2a2a2a',
+                panel: '#333333'
+            },
+            node: {
+                background: '#444444',
+                border: '#666666',
+                selectedBg: '#555555',
+                selectedBorder: '#4CAF50',
+                hoverGlow: '#4CAF50'
+            },
+            categories: {
+                math: '#4A90E2',
+                logic: '#F5A623',
+                data: '#7ED321',
+                conversion: '#BD10E0',
+                vector: '#B8E986',
+                utility: '#9013FE',
+                nested: '#FF6B6B'
+            },
+            types: {
+                float: '#4A90E2',
+                int: '#F5A623', 
+                bool: '#F5A623',
+                string: '#7ED321',
+                vec2: '#9C27B0',
+                vec3: '#E91E63',
+                vector: '#B8E986'
+            },
+            wires: {
+                normal: '#4CAF50',        // Default wire color (green)
+                selected: '#FF6B35',      // Selected wire color (orange) 
+                invalid: '#FF0000',       // Invalid connection color (red)
+                preview: '#4CAF50'        // Preview wire color (green)
+            },
+            text: {
+                primary: '#ffffff',
+                secondary: '#cccccc',
+                muted: '#888888'
+            },
+            ui: {
+                accent: '#4CAF50',
+                warning: '#FFC107',
+                error: '#F44336',
+                grid: '#333333'  // Updated for better visibility
+            },
+            effects: {
+                shadow: '#000000'
+            },
+            port: {
+                borderColor: '#666666'
+            },
+            tooltip: {
+                backgroundColor: '#222222',
+                borderColor: '#555555'
+            },
+            wire: {
+                hitAreaColor: '#000000'
+            },
+            fallback: {
+                category: '#666666',
+                type: '#666666'
+            },
+            mask: {
+                fill: '#FFFFFF'
+            },
+            opacity: {
+                // Wire opacity values
+                wireNormal: 1.0,
+                wireSelected: 1.0,
+                wireInvalid: 0.8,
+                wirePreview: 0.7,
+                wireHitArea: 0.01,
+                
+                // Grid opacity
+                grid: 0.5,
+                
+                // Node effects opacity
+                nodeShadow: 0.7,
+                nodeSelectionGlow: 0.1,
+                nodeHoverGlow: 0.1,
+                nodeSelectionBorder: 0.5,
+                nodeBackground: 1.0,
+                nodeBorder: 1.0,
+                nodeSelectedBg: 1.0,
+                
+                // Background opacity
+                backgroundMain: 1.0,
+                backgroundSecondary: 1.0,
+                backgroundPanel: 1.0,
+                
+                // Text opacity
+                textPrimary: 1.0,
+                textSecondary: 1.0,
+                textMuted: 1.0,
+                
+                // UI Elements opacity
+                uiBodyBackground: 1.0,
+                uiPanelBackground: 1.0,
+                uiPanelBorder: 1.0,
+                uiInputBackground: 1.0,
+                uiProgressBackground: 1.0,
+                uiProgressBar: 1.0,
+                uiLabelColor: 1.0,
+                uiStatusColor: 1.0,
+                
+                // Port animation opacity
+                portParamLabel: 1.0,
+                portConnectorGlow: 0.3,
+                portIncompatibleRed: 1.0,
+                portValidGreen: 1.0,
+                portInvalidRed: 1.0,
+                
+                // Category colors opacity
+                categoryMath: 1.0,
+                categoryVector: 1.0,
+                categoryLogic: 1.0,
+                categoryData: 1.0,
+                categoryConversion: 1.0,
+                categoryUtility: 1.0,
+                categoryNested: 1.0,
+                
+                // Type colors opacity
+                typeFloat: 1.0,
+                typeInt: 1.0,
+                typeBool: 1.0,
+                typeVec2: 1.0,
+                typeVec3: 1.0,
+                typeString: 1.0,
+                typeVector: 1.0,
+                
+                // Theme colors opacity
+                themeDarkBackground: 1.0,
+                themeDarkNodeBg: 1.0,
+                themeDarkerBackground: 1.0,
+                themeDarkerNodeBg: 1.0,
+                themeMatrixBackground: 1.0,
+                themeMatrixNodeBg: 1.0,
+                themeMatrixText: 1.0,
+                
+                // Selection & Effects
+                selectionBoxLine: 1.0,
+                selectionBoxFill: 0.0,
+                gradientInner: 1.0,
+                gradientOuter: 1.0,
+                
+                // Danger zone & effects
+                dangerZoneMax: 0.8,
+                dangerZoneMin: 0.5,
+                glowEffectNormal: 0.3,
+                glowEffectPulseMin: 0.2,
+                glowEffectPulseMax: 0.4
+            },
+            uiElements: {
+                bodyBackground: '#1a1a1a',
+                panelBackground: '#2a2a2a',
+                panelBorder: '#555555',
+                inputBackground: '#333333',
+                progressBackground: '#333333',
+                progressBar: '#4CAF50',
+                labelColor: '#aaaaaa',
+                statusColor: '#dddddd'
+            },
+            portAnimation: {
+                paramLabel: '#666666',
+                connectorOrange: '#FF6600',
+                incompatibleRed: '#FF0000',
+                validGreen: '#00FF00',
+                invalidRed: '#FF0000'
+            },
+            selectionBox: {
+                lineColor: '#4CAF50',
+                fillColor: '#4CAF5020'
+            },
+            gradientEffects: {
+                innerColor: '#2A2A2A',
+                outerColor: '#424242'
+            },
+            themes: {
+                darkBackground: '#1a1a1a',
+                darkNodeBg: '#333333',
+                darkerBackground: '#0f0f0f',
+                darkerNodeBg: '#222222',
+                matrixBackground: '#005500',
+                matrixNodeBg: '#001100',
+                matrixText: '#00ff00'
+            }
+        };
+
+        let currentColors = { ...defaultColors };
+
+        // Load colors from localStorage or use defaults
+        function loadColors() {
+            const saved = localStorage.getItem('plexusColors');
+            if (saved) {
+                try {
+                    currentColors = JSON.parse(saved);
+                    showStatus('Colors loaded successfully!', 'success');
+                } catch (e) {
+                    showStatus('Error loading saved colors, using defaults', 'error');
+                    currentColors = { ...defaultColors };
+                }
+            } else {
+                currentColors = { ...defaultColors };
+            }
+            generateColorPalette();
+        }
+
+        // Save colors to localStorage and update style file
+        function saveColors() {
+            localStorage.setItem('plexusColors', JSON.stringify(currentColors));
+            showStatus('Colors saved successfully! Main index will refresh automatically.', 'success');
+            
+            // Force refresh the main index
+            refreshMainIndex();
+            
+            // Also update the actual style file if possible
+            updateStyleFile();
+        }
+        
+        // AUTO-SAVE function for parameter changes
+        function autoSaveColors() {
+            localStorage.setItem('plexusColors', JSON.stringify(currentColors));
+            showStatus('Auto-saved! Main index refreshed.', 'success');
+            
+            // Force refresh the main index
+            refreshMainIndex();
+        }
+
+        // Map color keys to their alpha keys - COMPREHENSIVE MAPPING
+        function getAlphaKeyForColor(section, colorKey) {
+            const alphaMap = {
+                // Wires (now all actual colors)
+                'wires.normal': 'wireNormal', 
+                'wires.selected': 'wireSelected',
+                'wires.invalid': 'wireInvalid',
+                'wires.preview': 'wirePreview',
+                
+                // Grid
+                'ui.grid': 'grid',
+                
+                // Node effects  
+                'effects.shadow': 'nodeShadow',
+                'node.selectedBorder': 'nodeSelectionBorder',
+                'node.hoverGlow': 'nodeHoverGlow',
+                'node.background': 'nodeBackground',
+                'node.border': 'nodeBorder',
+                'node.selectedBg': 'nodeSelectedBg',
+                
+                // Background colors
+                'background.main': 'backgroundMain',
+                'background.secondary': 'backgroundSecondary', 
+                'background.panel': 'backgroundPanel',
+                
+                // Text colors
+                'text.primary': 'textPrimary',
+                'text.secondary': 'textSecondary',
+                'text.muted': 'textMuted',
+                
+                // UI Elements
+                'uiElements.bodyBackground': 'uiBodyBackground',
+                'uiElements.panelBackground': 'uiPanelBackground',
+                'uiElements.panelBorder': 'uiPanelBorder',
+                'uiElements.inputBackground': 'uiInputBackground',
+                'uiElements.progressBackground': 'uiProgressBackground',
+                'uiElements.progressBar': 'uiProgressBar',
+                'uiElements.labelColor': 'uiLabelColor',
+                'uiElements.statusColor': 'uiStatusColor',
+                
+                // Port Animation
+                'portAnimation.paramLabel': 'portParamLabel',
+                'portAnimation.connectorOrange': 'portConnectorGlow',
+                'portAnimation.incompatibleRed': 'portIncompatibleRed',
+                'portAnimation.validGreen': 'portValidGreen',
+                'portAnimation.invalidRed': 'portInvalidRed',
+                
+                // Selection & Effects
+                'selectionBox.lineColor': 'selectionBoxLine',
+                'selectionBox.fillColor': 'selectionBoxFill',
+                'gradientEffects.innerColor': 'gradientInner',
+                'gradientEffects.outerColor': 'gradientOuter',
+                
+                // Category colors
+                'categories.math': 'categoryMath',
+                'categories.vector': 'categoryVector',
+                'categories.logic': 'categoryLogic',
+                'categories.data': 'categoryData',
+                'categories.conversion': 'categoryConversion',
+                'categories.utility': 'categoryUtility',
+                'categories.nested': 'categoryNested',
+                
+                // Type colors
+                'types.float': 'typeFloat',
+                'types.int': 'typeInt',
+                'types.bool': 'typeBool',
+                'types.vec2': 'typeVec2',
+                'types.vec3': 'typeVec3',
+                'types.string': 'typeString',
+                'types.vector': 'typeVector',
+                
+                // Theme colors
+                'themes.darkBackground': 'themeDarkBackground',
+                'themes.darkNodeBg': 'themeDarkNodeBg',
+                'themes.darkerBackground': 'themeDarkerBackground',
+                'themes.darkerNodeBg': 'themeDarkerNodeBg',
+                'themes.matrixBackground': 'themeMatrixBackground',
+                'themes.matrixNodeBg': 'themeMatrixNodeBg',
+                'themes.matrixText': 'themeMatrixText'
+            };
+            
+            const key = `${section}.${colorKey}`;
+            return alphaMap[key] || `${section}${colorKey.charAt(0).toUpperCase()}${colorKey.slice(1)}Alpha`;
+        }
+        
+        // Generate the color palette UI
+        function generateColorPalette() {
+            const grid = document.getElementById('paletteGrid');
+            grid.innerHTML = '';
+
+            Object.keys(currentColors).forEach(sectionKey => {
+                // Skip opacity section - it's integrated into color items
+                if (sectionKey === 'opacity') return;
+                
+                const section = currentColors[sectionKey];
+                const sectionDiv = document.createElement('div');
+                sectionDiv.className = 'color-section';
+
+                let sectionHTML = `<div class="section-title">🎨 ${sectionKey.charAt(0).toUpperCase() + sectionKey.slice(1)}</div>`;
+
+                Object.keys(section).forEach(colorKey => {
+                    const colorValue = section[colorKey];
+                    
+                    if (typeof colorValue === 'string' && colorValue !== 'useTypeColor') {
+                        const hexColor = colorValue.startsWith('#') ? colorValue : `#${colorValue.toString(16).padStart(6, '0')}`;
+                        
+                        // Get corresponding alpha value if it exists
+                        const alphaKey = getAlphaKeyForColor(sectionKey, colorKey);
+                        const alphaValue = currentColors.opacity?.[alphaKey] || 1.0;
+                        const alphaPercentage = Math.round(alphaValue * 100);
+                        
+                        sectionHTML += `
+                            <div class="color-item">
+                                <div class="color-preview" style="background-color: ${hexColor}" 
+                                     onclick="openColorPicker('${sectionKey}', '${colorKey}')"></div>
+                                <div class="color-info">
+                                    <div class="color-name">${colorKey}</div>
+                                    <div class="color-value">
+                                        <input type="text" class="color-input" 
+                                               value="${colorValue}" 
+                                               onchange="updateColor('${sectionKey}', '${colorKey}', this.value)">
+                                    </div>
+                                    ${alphaKey ? `
+                                    <div class="alpha-control">
+                                        <span class="alpha-label">Alpha:</span>
+                                        <input type="range" class="opacity-slider" 
+                                               min="0" max="100" value="${alphaPercentage}"
+                                               oninput="updateOpacity('opacity', '${alphaKey}', this.value)">
+                                        <span class="opacity-value">${alphaPercentage}%</span>
+                                    </div>
+                                    ` : ''}
+                                </div>
+                            </div>
+                        `;
+                    } else if (colorValue === 'useTypeColor') {
+                        sectionHTML += `
+                            <div class="color-item">
+                                <div class="color-preview" style="background: linear-gradient(45deg, #4A90E2, #F5A623, #7ED321)"></div>
+                                <div class="color-info">
+                                    <div class="color-name">${colorKey}</div>
+                                    <div class="color-value">useTypeColor</div>
+                                </div>
+                            </div>
+                        `;
+                    }
+                });
+
+                sectionDiv.innerHTML = sectionHTML;
+                grid.appendChild(sectionDiv);
+            });
+        }
+
+        // Open color picker for a specific color
+        function openColorPicker(section, key) {
+            const input = document.createElement('input');
+            input.type = 'color';
+            input.value = currentColors[section][key].startsWith('#') ? 
+                          currentColors[section][key] : 
+                          `#${currentColors[section][key].toString(16).padStart(6, '0')}`;
+            
+            input.onchange = function() {
+                updateColor(section, key, this.value);
+            };
+            
+            input.click();
+        }
+
+        // Update a specific color
+        function updateColor(section, key, value) {
+            currentColors[section][key] = value;
+            generateColorPalette();
+            autoSaveColors(); // AUTO-SAVE on change
+        }
+        
+        // Update opacity value
+        function updateOpacity(section, key, percentage) {
+            const value = parseFloat(percentage) / 100;
+            currentColors[section][key] = value;
+            
+            // Update the display without regenerating entire palette
+            const slider = event.target;
+            const valueSpan = slider.nextElementSibling;
+            if (valueSpan) valueSpan.textContent = percentage + '%';
+            
+            // Update preview
+            const preview = slider.closest('.color-item').querySelector('.color-preview');
+            if (preview) {
+                const grayValue = Math.round(value * 255);
+                const grayHex = `#${grayValue.toString(16).padStart(2, '0').repeat(3)}`;
+                preview.style.backgroundColor = grayHex;
+            }
+            
+            autoSaveColors(); // AUTO-SAVE on opacity change
+        }
+
+        // PRESET MANAGEMENT SYSTEM
+        function getSavedPresets() {
+            try {
+                const presets = localStorage.getItem('plexusPresets');
+                return presets ? JSON.parse(presets) : {};
+            } catch (e) {
+                console.warn('Failed to load presets');
+                return {};
+            }
+        }
+
+        function savePreset() {
+            const nameInput = document.getElementById('presetName');
+            const name = nameInput.value.trim();
+            
+            if (!name) {
+                showStatus('Please enter a preset name!', 'error');
+                return;
+            }
+            
+            if (name.length > 30) {
+                showStatus('Preset name too long (max 30 characters)!', 'error');
+                return;
+            }
+            
+            const presets = getSavedPresets();
+            
+            // Check if preset already exists
+            if (presets[name] && !confirm(`Preset "${name}" already exists. Overwrite?`)) {
+                return;
+            }
+            
+            presets[name] = JSON.parse(JSON.stringify(currentColors));
+            
+            try {
+                localStorage.setItem('plexusPresets', JSON.stringify(presets));
+                populatePresetDropdown();
+                nameInput.value = '';
+                showStatus(`Preset "${name}" saved successfully!`, 'success');
+            } catch (e) {
+                showStatus('Failed to save preset!', 'error');
+            }
+        }
+
+        function loadPreset() {
+            const selector = document.getElementById('presetSelector');
+            const presetName = selector.value;
+            
+            if (!presetName) return;
+            
+            const presets = getSavedPresets();
+            if (presets[presetName]) {
+                currentColors = JSON.parse(JSON.stringify(presets[presetName]));
+                generateColorPalette();
+                showStatus(`Preset "${presetName}" loaded!`, 'success');
+            } else {
+                showStatus('Preset not found!', 'error');
+                populatePresetDropdown(); // Refresh dropdown
+            }
+        }
+
+        function deletePreset() {
+            const selector = document.getElementById('presetSelector');
+            const presetName = selector.value;
+            
+            if (!presetName) {
+                showStatus('No preset selected!', 'error');
+                return;
+            }
+            
+            if (!confirm(`Are you sure you want to delete preset "${presetName}"?`)) {
+                return;
+            }
+            
+            const presets = getSavedPresets();
+            delete presets[presetName];
+            
+            try {
+                localStorage.setItem('plexusPresets', JSON.stringify(presets));
+                populatePresetDropdown();
+                showStatus(`Preset "${presetName}" deleted!`, 'success');
+            } catch (e) {
+                showStatus('Failed to delete preset!', 'error');
+            }
+        }
+
+        function populatePresetDropdown() {
+            const selector = document.getElementById('presetSelector');
+            const presets = getSavedPresets();
+            
+            // Clear existing options
+            selector.innerHTML = '<option value="">Select a preset...</option>';
+            
+            // Add saved presets
+            Object.keys(presets).sort().forEach(name => {
+                const option = document.createElement('option');
+                option.value = name;
+                option.textContent = name;
+                selector.appendChild(option);
+            });
+        }
+
+        // Reset to defaults
+        function resetToDefaults() {
+            if (confirm('Are you sure you want to reset all colors to defaults?')) {
+                currentColors = JSON.parse(JSON.stringify(defaultColors));
+                generateColorPalette();
+                showStatus('Colors reset to defaults!', 'success');
+            }
+        }
+
+        // Export colors and presets
+        function exportColors() {
+            const exportData = {
+                plexusColors: currentColors,
+                plexusPresets: getSavedPresets(),
+                timestamp: new Date().toISOString(),
+                version: '1.0'
+            };
+            
+            document.getElementById('exportTextarea').value = JSON.stringify(exportData, null, 2);
+            showStatus('Colors and presets exported to textarea!', 'success');
+        }
+
+        // Import colors and presets
+        function importColors() {
+            try {
+                const importData = JSON.parse(document.getElementById('exportTextarea').value);
+                let imported = [];
+                
+                if (importData.plexusColors) {
+                    currentColors = importData.plexusColors;
+                    generateColorPalette();
+                    imported.push('colors');
+                }
+                
+                if (importData.plexusPresets) {
+                    localStorage.setItem('plexusPresets', JSON.stringify(importData.plexusPresets));
+                    populatePresetDropdown();
+                    imported.push('presets');
+                }
+                
+                if (imported.length > 0) {
+                    showStatus(`${imported.join(' and ').charAt(0).toUpperCase() + imported.join(' and ').slice(1)} imported successfully!`, 'success');
+                } else {
+                    throw new Error('Invalid format');
+                }
+            } catch (e) {
+                showStatus('Error importing: Invalid JSON format', 'error');
+            }
+        }
+
+        // Update the actual style file (if running locally)
+        function updateStyleFile() {
+            // This would need a local file system API or server endpoint
+            // For now, we'll just update localStorage
+            console.log('Colors saved to localStorage');
+        }
+        
+        // FORCE REFRESH the main index window
+        function refreshMainIndex() {
+            try {
+                // Try multiple methods to refresh the main index
+                
+                // Method 1: If we're in an iframe, refresh parent
+                if (window.parent && window.parent !== window) {
+                    console.log('🔄 Refreshing parent window (iframe mode)');
+                    window.parent.location.reload();
+                    return;
+                }
+                
+                // Method 2: Try to find and refresh index.html window
+                if (window.opener) {
+                    console.log('🔄 Refreshing opener window');
+                    window.opener.location.reload();
+                    return;
+                }
+                
+                // Method 3: Use postMessage to communicate with other windows
+                // Send message to all open windows on same origin
+                if (typeof BroadcastChannel !== 'undefined') {
+                    const channel = new BroadcastChannel('plexus-colors');
+                    channel.postMessage({ type: 'COLORS_UPDATED', colors: currentColors });
+                    console.log('🔄 Broadcast colors update message');
+                }
+                
+                // Method 4: Try localStorage event (for same-origin pages)
+                localStorage.setItem('plexusColorsTimestamp', Date.now().toString());
+                
+            } catch (e) {
+                console.warn('Could not refresh main index:', e);
+            }
+        }
+
+        // Show status message
+        function showStatus(message, type) {
+            const status = document.getElementById('status');
+            status.textContent = message;
+            status.className = `status ${type}`;
+            status.style.display = 'block';
+            
+            setTimeout(() => {
+                status.style.display = 'none';
+            }, 3000);
+        }
+
+        // Initialize
+        window.onload = function() {
+            loadColors();
+            populatePresetDropdown();
+        };
+    </script>
+</body>
+</html>

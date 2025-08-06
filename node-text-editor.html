@@ -1,0 +1,1350 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎨 NODE TEXT STYLE EDITOR</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e, #16213e);
+            color: #ffffff;
+            overflow: hidden;
+        }
+        
+        #container {
+            display: flex;
+            height: 100vh;
+        }
+        
+        #canvas-container {
+            flex: 1;
+            position: relative;
+            background: #000;
+        }
+        
+        #sidebar {
+            width: 320px;
+            background: rgba(20, 25, 35, 0.95);
+            border-left: 1px solid #333;
+            overflow-y: auto;
+            padding: 15px;
+            flex-shrink: 0;
+        }
+        
+        .panel {
+            background: rgba(30, 35, 45, 0.8);
+            border: 1px solid #444;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            padding: 12px;
+        }
+        
+        .panel-title {
+            font-weight: bold;
+            font-size: 14px;
+            color: #4a9eff;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .control-group {
+            margin-bottom: 12px;
+        }
+        
+        .control-label {
+            display: block;
+            font-size: 11px;
+            color: #aaa;
+            margin-bottom: 4px;
+            text-transform: uppercase;
+        }
+        
+        .control-row {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+        
+        input[type="range"] {
+            flex: 1;
+            height: 20px;
+            background: #333;
+            border-radius: 10px;
+            outline: none;
+            -webkit-appearance: none;
+        }
+        
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 16px;
+            height: 16px;
+            background: #4a9eff;
+            border-radius: 50%;
+            cursor: pointer;
+        }
+        
+        input[type="number"], input[type="text"], select {
+            width: 60px;
+            padding: 4px 6px;
+            background: #333;
+            border: 1px solid #555;
+            border-radius: 4px;
+            color: #fff;
+            font-size: 11px;
+        }
+        
+        input[type="color"] {
+            width: 40px;
+            height: 24px;
+            background: #333;
+            border: 1px solid #555;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        
+        select {
+            width: 100%;
+        }
+        
+        button {
+            background: #4a9eff;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 11px;
+            font-weight: bold;
+        }
+        
+        button:hover {
+            background: #3d8ce6;
+        }
+        
+        button.secondary {
+            background: #666;
+        }
+        
+        button.secondary:hover {
+            background: #777;
+        }
+        
+        .checkbox-row {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        
+        input[type="checkbox"] {
+            width: 16px;
+            height: 16px;
+        }
+        
+        .preset-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 6px;
+            margin-bottom: 10px;
+        }
+        
+        .preset-btn {
+            padding: 4px 6px;
+            font-size: 10px;
+            background: #555;
+        }
+        
+        .preset-btn.active {
+            background: #4a9eff;
+        }
+        
+        #preview-text {
+            margin: 10px 0;
+            padding: 8px;
+            background: #222;
+            border: 1px solid #444;
+            border-radius: 4px;
+            color: #fff;
+            font-size: 12px;
+            resize: none;
+            width: 100%;
+            height: 60px;
+        }
+        
+        .live-preview {
+            background: #111;
+            border: 1px solid #333;
+            border-radius: 4px;
+            padding: 20px;
+            margin: 10px 0;
+            min-height: 100px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+        
+        .export-section {
+            border-top: 1px solid #444;
+            padding-top: 10px;
+            margin-top: 10px;
+        }
+        
+        .toolbar {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            z-index: 100;
+            display: flex;
+            gap: 8px;
+        }
+        
+        .toolbar button {
+            background: rgba(74, 158, 255, 0.9);
+            backdrop-filter: blur(5px);
+        }
+    </style>
+</head>
+<body>
+    <div id="container">
+        <div id="canvas-container">
+            <div class="toolbar">
+                <button id="add-sample-btn">Add Sample Node</button>
+                <button id="show-all-text-btn">Show ALL Text Types</button>
+                <button id="reset-btn" class="secondary">Reset Scene</button>
+                <button id="debug-btn" class="secondary">Force Show Text</button>
+            </div>
+        </div>
+        
+
+
+        <div id="sidebar">
+            <!-- Text Type Selector -->
+            <div class="panel">
+                <div class="panel-title">🎯 Text Element Type <span id="autosave-indicator" style="opacity: 0; color: #4a9eff; font-size: 10px; transition: opacity 0.3s;">● SAVED</span></div>
+                <div class="preset-buttons">
+                    <button class="preset-btn active" data-type="title">Title</button>
+                    <button class="preset-btn" data-type="category">Category</button>
+                    <button class="preset-btn" data-type="parameter">Parameter</button>
+                    <button class="preset-btn" data-type="port">Port</button>
+                    <button class="preset-btn" data-type="value">Value</button>
+                </div>
+                <textarea id="preview-text" placeholder="Enter text to preview...">Sample Node Title</textarea>
+                
+                <!-- DPI Control -->
+                <div class="control-group" style="margin-top: 10px;">
+                    <label class="control-label">Display DPI Scale</label>
+                    <div class="control-row">
+                        <input type="range" id="dpi-scale" min="0.5" max="5.0" value="2.5" step="0.1">
+                        <input type="number" id="dpi-scale-num" min="0.5" max="5.0" value="2.5" step="0.1" style="width: 70px;">
+                        <span style="color: #666; font-size: 10px;">x</span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Font Properties -->
+            <div class="panel">
+                <div class="panel-title">🔤 Font Properties</div>
+                
+                <div class="control-group">
+                    <label class="control-label">Font Family</label>
+                    <select id="font-family">
+                        <optgroup label="Sans-Serif">
+                            <option value="Arial, sans-serif">Arial</option>
+                            <option value="Arial Black, sans-serif">Arial Black</option>
+                            <option value="Helvetica, sans-serif">Helvetica</option>
+                            <option value="Segoe UI, sans-serif">Segoe UI</option>
+                            <option value="Roboto, sans-serif">Roboto</option>
+                        </optgroup>
+                        <optgroup label="Monospace">
+                            <option value="Consolas, Monaco, monospace">Consolas</option>
+                            <option value="Courier New, monospace">Courier New</option>
+                            <option value="Fira Code, monospace">Fira Code</option>
+                        </optgroup>
+                        <optgroup label="Serif">
+                            <option value="Times New Roman, serif">Times New Roman</option>
+                            <option value="Georgia, serif">Georgia</option>
+                        </optgroup>
+                    </select>
+                </div>
+                
+                <div class="control-group">
+                    <label class="control-label">Font Size</label>
+                    <div class="control-row">
+                        <input type="range" id="font-size" min="6" max="24" value="11" step="1">
+                        <input type="number" id="font-size-num" min="6" max="24" value="11">
+                    </div>
+                </div>
+                
+                <div class="control-group">
+                    <label class="control-label">Font Weight</label>
+                    <select id="font-weight">
+                        <option value="normal">Normal</option>
+                        <option value="bold">Bold</option>
+                        <option value="100">Thin</option>
+                        <option value="300">Light</option>
+                        <option value="500">Medium</option>
+                        <option value="700">Bold</option>
+                        <option value="900">Black</option>
+                    </select>
+                </div>
+                
+                <div class="control-group">
+                    <label class="control-label">Text Color</label>
+                    <div class="control-row">
+                        <input type="color" id="text-color" value="#ffffff">
+                        <input type="text" id="text-color-hex" value="#ffffff" maxlength="7">
+                    </div>
+                </div>
+                
+                <div class="control-group">
+                    <label class="control-label">Text Align</label>
+                    <select id="text-align">
+                        <option value="left">Left</option>
+                        <option value="center">Center</option>
+                        <option value="right">Right</option>
+                        <option value="justify">Justify</option>
+                    </select>
+                </div>
+                
+                <div class="control-group">
+                    <label class="control-label">Text Case</label>
+                    <select id="text-case">
+                        <option value="normal">Normal</option>
+                        <option value="uppercase">UPPERCASE</option>
+                        <option value="lowercase">lowercase</option>
+                        <option value="capitalize">Capitalize Words</option>
+                    </select>
+                </div>
+                
+                <div class="control-group">
+                    <label class="control-label">Letter Spacing</label>
+                    <div class="control-row">
+                        <input type="range" id="letter-spacing" min="-5" max="20" value="0" step="0.5">
+                        <input type="number" id="letter-spacing-num" min="-5" max="20" value="0" step="0.5">
+                        <span style="color: #666; font-size: 10px;">px</span>
+                    </div>
+                </div>
+                
+                <div class="control-group">
+                    <label class="control-label">Line Height</label>
+                    <div class="control-row">
+                        <input type="range" id="line-height" min="0.5" max="3.0" value="1.2" step="0.1">
+                        <input type="number" id="line-height-num" min="0.5" max="3.0" value="1.2" step="0.1">
+                        <span style="color: #666; font-size: 10px;">em</span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Scale & Transform -->
+            <div class="panel">
+                <div class="panel-title">📐 Scale & Transform</div>
+                
+                <div class="control-group">
+                    <label class="control-label">Scale X</label>
+                    <div class="control-row">
+                        <input type="range" id="scale-x" min="0.1" max="3.0" value="1.0" step="0.1">
+                        <input type="number" id="scale-x-num" min="0.1" max="3.0" value="1.0" step="0.1">
+                    </div>
+                </div>
+                
+                <div class="control-group">
+                    <label class="control-label">Scale Y</label>
+                    <div class="control-row">
+                        <input type="range" id="scale-y" min="0.1" max="3.0" value="1.0" step="0.1">
+                        <input type="number" id="scale-y-num" min="0.1" max="3.0" value="1.0" step="0.1">
+                    </div>
+                </div>
+                
+                <div class="control-group">
+                    <label class="control-label">Offset X</label>
+                    <div class="control-row">
+                        <input type="range" id="offset-x" min="-50" max="50" value="0" step="1">
+                        <input type="number" id="offset-x-num" min="-50" max="50" value="0">
+                    </div>
+                </div>
+                
+                <div class="control-group">
+                    <label class="control-label">Offset Y</label>
+                    <div class="control-row">
+                        <input type="range" id="offset-y" min="-50" max="50" value="-8" step="1">
+                        <input type="number" id="offset-y-num" min="-50" max="50" value="-8">
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Pivot & Alignment -->
+            <div class="panel">
+                <div class="panel-title">🎯 Pivot & Alignment</div>
+                
+                <div class="control-group">
+                    <label class="control-label">Pivot X (Anchor)</label>
+                    <div class="control-row">
+                        <input type="range" id="pivot-x" min="0" max="1" value="0.5" step="0.1">
+                        <input type="number" id="pivot-x-num" min="0" max="1" value="0.5" step="0.1">
+                    </div>
+                </div>
+                
+                <div class="control-group">
+                    <label class="control-label">Pivot Y (Anchor)</label>
+                    <div class="control-row">
+                        <input type="range" id="pivot-y" min="0" max="1" value="0.5" step="0.1">
+                        <input type="number" id="pivot-y-num" min="0" max="1" value="0.5" step="0.1">
+                    </div>
+                </div>
+                
+                <div class="control-group">
+                    <label class="control-label">Quick Pivot</label>
+                    <div class="preset-buttons">
+                        <button class="preset-btn" data-pivot="0,0">Top-Left</button>
+                        <button class="preset-btn" data-pivot="0.5,0">Top-Center</button>
+                        <button class="preset-btn" data-pivot="1,0">Top-Right</button>
+                        <button class="preset-btn" data-pivot="0,0.5">Mid-Left</button>
+                        <button class="preset-btn active" data-pivot="0.5,0.5">Center</button>
+                        <button class="preset-btn" data-pivot="1,0.5">Mid-Right</button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Padding -->
+            <div class="panel">
+                <div class="panel-title">📦 Padding</div>
+                
+                <div class="control-group">
+                    <label class="control-label">Top</label>
+                    <div class="control-row">
+                        <input type="range" id="padding-top" min="0" max="20" value="2" step="1">
+                        <input type="number" id="padding-top-num" min="0" max="20" value="2">
+                    </div>
+                </div>
+                
+                <div class="control-group">
+                    <label class="control-label">Bottom</label>
+                    <div class="control-row">
+                        <input type="range" id="padding-bottom" min="0" max="20" value="2" step="1">
+                        <input type="number" id="padding-bottom-num" min="0" max="20" value="2">
+                    </div>
+                </div>
+                
+                <div class="control-group">
+                    <label class="control-label">Left</label>
+                    <div class="control-row">
+                        <input type="range" id="padding-left" min="0" max="20" value="4" step="1">
+                        <input type="number" id="padding-left-num" min="0" max="20" value="4">
+                    </div>
+                </div>
+                
+                <div class="control-group">
+                    <label class="control-label">Right</label>
+                    <div class="control-row">
+                        <input type="range" id="padding-right" min="0" max="20" value="4" step="1">
+                        <input type="number" id="padding-right-num" min="0" max="20" value="4">
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Font Effects -->
+            <div class="panel">
+                <div class="panel-title">✨ Font Effects</div>
+                
+                <div class="checkbox-row">
+                    <input type="checkbox" id="drop-shadow" checked>
+                    <label for="drop-shadow">Drop Shadow</label>
+                </div>
+                
+                <div class="control-group" id="shadow-controls">
+                    <label class="control-label">Shadow Color</label>
+                    <div class="control-row">
+                        <input type="color" id="shadow-color" value="#000000">
+                        <input type="text" id="shadow-color-hex" value="#000000" maxlength="7">
+                    </div>
+                    
+                    <label class="control-label">Shadow Alpha</label>
+                    <div class="control-row">
+                        <input type="range" id="shadow-alpha" min="0" max="1" value="0.8" step="0.1">
+                        <input type="number" id="shadow-alpha-num" min="0" max="1" value="0.8" step="0.1">
+                    </div>
+                    
+                    <label class="control-label">Shadow Blur</label>
+                    <div class="control-row">
+                        <input type="range" id="shadow-blur" min="0" max="10" value="2" step="1">
+                        <input type="number" id="shadow-blur-num" min="0" max="10" value="2">
+                    </div>
+                </div>
+                
+                <div class="checkbox-row">
+                    <input type="checkbox" id="text-glow">
+                    <label for="text-glow">Glow Effect</label>
+                </div>
+                
+                <div class="checkbox-row">
+                    <input type="checkbox" id="text-outline">
+                    <label for="text-outline">Outline</label>
+                </div>
+                
+                <div class="control-group" id="outline-controls" style="display: none;">
+                    <label class="control-label">Outline Width</label>
+                    <div class="control-row">
+                        <input type="range" id="outline-width" min="1" max="5" value="1" step="1">
+                        <input type="number" id="outline-width-num" min="1" max="5" value="1">
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Advanced PIXI Features -->
+            <div class="panel">
+                <div class="panel-title">🚀 Advanced PIXI Features</div>
+                
+                <div class="control-group">
+                    <label class="control-label">Text Style</label>
+                    <select id="text-style">
+                        <option value="normal">Normal</option>
+                        <option value="italic">Italic</option>
+                        <option value="oblique">Oblique</option>
+                    </select>
+                </div>
+                
+                <div class="control-group">
+                    <label class="control-label">Text Stroke</label>
+                    <div class="control-row">
+                        <input type="range" id="stroke-width" min="0" max="10" value="0" step="0.5">
+                        <input type="number" id="stroke-width-num" min="0" max="10" value="0" step="0.5">
+                        <input type="color" id="stroke-color" value="#000000">
+                    </div>
+                </div>
+                
+                <div class="control-group">
+                    <label class="control-label">Text Skew</label>
+                    <div class="control-row">
+                        <input type="range" id="skew-x" min="-45" max="45" value="0" step="1">
+                        <input type="number" id="skew-x-num" min="-45" max="45" value="0">
+                        <span style="color: #666; font-size: 10px;">°</span>
+                    </div>
+                </div>
+                
+                <div class="control-group">
+                    <label class="control-label">Text Rotation</label>
+                    <div class="control-row">
+                        <input type="range" id="text-rotation" min="-180" max="180" value="0" step="1">
+                        <input type="number" id="text-rotation-num" min="-180" max="180" value="0">
+                        <span style="color: #666; font-size: 10px;">°</span>
+                    </div>
+                </div>
+                
+                <div class="checkbox-row">
+                    <input type="checkbox" id="text-gradient">
+                    <label for="text-gradient">Gradient Fill</label>
+                </div>
+                
+                <div class="control-group" id="gradient-controls" style="display: none;">
+                    <label class="control-label">Gradient Colors</label>
+                    <div class="control-row">
+                        <input type="color" id="gradient-color-1" value="#ffffff">
+                        <input type="color" id="gradient-color-2" value="#4a9eff">
+                    </div>
+                    
+                    <label class="control-label">Gradient Angle</label>
+                    <div class="control-row">
+                        <input type="range" id="gradient-angle" min="0" max="360" value="90" step="1">
+                        <input type="number" id="gradient-angle-num" min="0" max="360" value="90">
+                        <span style="color: #666; font-size: 10px;">°</span>
+                    </div>
+                </div>
+                
+                <div class="checkbox-row">
+                    <input type="checkbox" id="word-wrap">
+                    <label for="word-wrap">Word Wrap</label>
+                </div>
+                
+                <div class="control-group" id="wrap-controls" style="display: none;">
+                    <label class="control-label">Wrap Width</label>
+                    <div class="control-row">
+                        <input type="range" id="wrap-width" min="50" max="500" value="200" step="10">
+                        <input type="number" id="wrap-width-num" min="50" max="500" value="200">
+                        <span style="color: #666; font-size: 10px;">px</span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Live Preview -->
+            <div class="panel">
+                <div class="panel-title">👁️ Live Preview</div>
+                <div class="live-preview" id="live-preview">
+                    <!-- PIXI preview will be rendered here -->
+                </div>
+            </div>
+            
+            <!-- Export -->
+            <div class="panel">
+                <div class="panel-title">💾 Export & Save</div>
+                
+                <div class="control-group">
+                    <button id="save-preset-btn">Save as Preset</button>
+                    <button id="export-style-btn" class="secondary">Export Style JSON</button>
+                </div>
+                
+                <div class="export-section">
+                    <label class="control-label">Style Name</label>
+                    <input type="text" id="style-name" placeholder="my-custom-style" style="width: 100%;">
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- PIXI.js -->
+    <script src="https://unpkg.com/pixi.js@8.4.1/dist/pixi.min.js"></script>
+    
+    <!-- Text Style Manager -->
+    <script src="style/pixi-node-text-manager.js"></script>
+    
+    <script>
+        // 🎨 NODE TEXT STYLE EDITOR APPLICATION
+        class NodeTextStyleEditor {
+            constructor() {
+                this.app = null;
+                this.previewText = null;
+                this.currentStyle = 'title';
+                this.sampleNode = null;
+                
+                this.init();
+            }
+            
+            async init() {
+                console.log('🎨 Initializing Node Text Style Editor...');
+                
+                // Create PIXI Application with HIGH DPI support
+                this.app = new PIXI.Application();
+                await this.app.init({
+                    width: window.innerWidth - 320,
+                    height: window.innerHeight,
+                    backgroundColor: 0x1a1a2e,
+                    antialias: true,
+                    resolution: window.devicePixelRatio || 1, // Match device DPI
+                    autoDensity: true // Auto-adjust for high DPI displays
+                });
+                
+                // Ensure canvas scales properly for high-DPI displays
+                this.app.canvas.style.width = (window.innerWidth - 320) + 'px';
+                this.app.canvas.style.height = window.innerHeight + 'px';
+                
+                document.getElementById('canvas-container').appendChild(this.app.canvas);
+                
+                // Create preview container
+                this.previewContainer = new PIXI.Container();
+                this.app.stage.addChild(this.previewContainer);
+                
+                // Center the preview
+                this.previewContainer.x = (this.app.canvas.width) / 2;
+                this.previewContainer.y = (this.app.canvas.height) / 2;
+                
+                // Initialize flag
+                this.showingAllTypes = false;
+                
+                // Create initial preview text
+                this.updatePreview();
+                
+                // Setup UI event listeners
+                this.setupEventListeners();
+                
+                console.log('✅ Node Text Style Editor initialized');
+            }
+            
+            setupEventListeners() {
+                // Text type selection
+                document.querySelectorAll('.preset-btn[data-type]').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        document.querySelectorAll('.preset-btn[data-type]').forEach(b => b.classList.remove('active'));
+                        btn.classList.add('active');
+                        this.currentStyle = btn.dataset.type;
+                        this.loadPresetToUI();
+                        this.updatePreview();
+                    });
+                });
+                
+                // Preview text change
+                document.getElementById('preview-text').addEventListener('input', () => {
+                    this.updatePreview();
+                });
+                
+                // Font properties
+                this.setupRangeInputSync('font-size', 'font-size-num');
+                this.setupRangeInputSync('scale-x', 'scale-x-num');
+                this.setupRangeInputSync('scale-y', 'scale-y-num');
+                this.setupRangeInputSync('offset-x', 'offset-x-num');
+                this.setupRangeInputSync('offset-y', 'offset-y-num');
+                this.setupRangeInputSync('pivot-x', 'pivot-x-num');
+                this.setupRangeInputSync('pivot-y', 'pivot-y-num');
+                this.setupRangeInputSync('padding-top', 'padding-top-num');
+                this.setupRangeInputSync('padding-bottom', 'padding-bottom-num');
+                this.setupRangeInputSync('padding-left', 'padding-left-num');
+                this.setupRangeInputSync('padding-right', 'padding-right-num');
+                this.setupRangeInputSync('shadow-alpha', 'shadow-alpha-num');
+                this.setupRangeInputSync('shadow-blur', 'shadow-blur-num');
+                this.setupRangeInputSync('outline-width', 'outline-width-num');
+                this.setupRangeInputSync('dpi-scale', 'dpi-scale-num');
+                this.setupRangeInputSync('letter-spacing', 'letter-spacing-num');
+                this.setupRangeInputSync('line-height', 'line-height-num');
+                this.setupRangeInputSync('stroke-width', 'stroke-width-num');
+                this.setupRangeInputSync('skew-x', 'skew-x-num');
+                this.setupRangeInputSync('text-rotation', 'text-rotation-num');
+                this.setupRangeInputSync('gradient-angle', 'gradient-angle-num');
+                this.setupRangeInputSync('wrap-width', 'wrap-width-num');
+                
+                // Color pickers
+                this.setupColorSync('text-color', 'text-color-hex');
+                this.setupColorSync('shadow-color', 'shadow-color-hex');
+                
+                // All controls update preview (but NOT during show all types mode)
+                document.querySelectorAll('input, select').forEach(input => {
+                    input.addEventListener('input', () => {
+                        if (!this.showingAllTypes) {
+                            this.updatePreview();
+                        }
+                    });
+                    
+                    // AUTO-SAVE for dropdowns and checkboxes
+                    if (input.type === 'checkbox' || input.tagName === 'SELECT') {
+                        input.addEventListener('change', () => {
+                            this.autoSave();
+                        });
+                    }
+                });
+                
+                // Special handler for DPI scale to refresh all text types
+                document.getElementById('dpi-scale').addEventListener('input', () => {
+                    if (this.showingAllTypes) {
+                        this.showAllTextTypes();
+                    }
+                });
+                
+                // Quick pivot buttons
+                document.querySelectorAll('.preset-btn[data-pivot]').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        const [x, y] = btn.dataset.pivot.split(',');
+                        document.getElementById('pivot-x').value = x;
+                        document.getElementById('pivot-x-num').value = x;
+                        document.getElementById('pivot-y').value = y;
+                        document.getElementById('pivot-y-num').value = y;
+                        
+                        document.querySelectorAll('.preset-btn[data-pivot]').forEach(b => b.classList.remove('active'));
+                        btn.classList.add('active');
+                        
+                        this.updatePreview();
+                    });
+                });
+                
+                // Effect toggles
+                document.getElementById('drop-shadow').addEventListener('change', (e) => {
+                    document.getElementById('shadow-controls').style.display = e.target.checked ? 'block' : 'none';
+                    this.updatePreview();
+                });
+                
+                document.getElementById('text-outline').addEventListener('change', (e) => {
+                    document.getElementById('outline-controls').style.display = e.target.checked ? 'block' : 'none';
+                    this.updatePreview();
+                });
+                
+                document.getElementById('text-gradient').addEventListener('change', (e) => {
+                    document.getElementById('gradient-controls').style.display = e.target.checked ? 'block' : 'none';
+                    this.updatePreview();
+                });
+                
+                document.getElementById('word-wrap').addEventListener('change', (e) => {
+                    document.getElementById('wrap-controls').style.display = e.target.checked ? 'block' : 'none';
+                    this.updatePreview();
+                });
+                
+                // Toolbar buttons
+                document.getElementById('add-sample-btn').addEventListener('click', () => this.addSampleNode());
+                document.getElementById('show-all-text-btn').addEventListener('click', () => this.showAllTextTypes());
+                document.getElementById('reset-btn').addEventListener('click', () => this.resetScene());
+                document.getElementById('debug-btn').addEventListener('click', () => this.forceShowText());
+                
+                // Export buttons
+                document.getElementById('save-preset-btn').addEventListener('click', () => this.saveCurrentAsPreset());
+                document.getElementById('export-style-btn').addEventListener('click', () => this.exportStyleJSON());
+            }
+            
+            setupRangeInputSync(rangeId, numberId) {
+                const range = document.getElementById(rangeId);
+                const number = document.getElementById(numberId);
+                
+                range.addEventListener('input', () => {
+                    number.value = range.value;
+                    this.updatePreview();
+                });
+                
+                // AUTO-SAVE on mouse release, not during drag
+                range.addEventListener('mouseup', () => {
+                    this.autoSave();
+                });
+                
+                range.addEventListener('touchend', () => {
+                    this.autoSave();
+                });
+                
+                number.addEventListener('input', () => {
+                    range.value = number.value;
+                    this.updatePreview();
+                });
+                
+                number.addEventListener('blur', () => {
+                    this.autoSave();
+                });
+            }
+            
+            setupColorSync(colorId, hexId) {
+                const color = document.getElementById(colorId);
+                const hex = document.getElementById(hexId);
+                
+                color.addEventListener('input', () => {
+                    hex.value = color.value;
+                    this.updatePreview();
+                });
+                
+                color.addEventListener('change', () => {
+                    this.autoSave(); // AUTO-SAVE on color change
+                });
+                
+                hex.addEventListener('input', () => {
+                    color.value = hex.value;
+                    this.updatePreview();
+                });
+                
+                hex.addEventListener('blur', () => {
+                    this.autoSave(); // AUTO-SAVE on blur
+                });
+            }
+            
+            getCurrentStyleFromUI() {
+                // Apply text case transformation
+                let textContent = document.getElementById('preview-text').value || 'Sample Text';
+                const textCase = document.getElementById('text-case').value;
+                switch(textCase) {
+                    case 'uppercase': textContent = textContent.toUpperCase(); break;
+                    case 'lowercase': textContent = textContent.toLowerCase(); break;
+                    case 'capitalize': textContent = textContent.replace(/\b\w/g, l => l.toUpperCase()); break;
+                }
+                
+                return {
+                    fontFamily: document.getElementById('font-family').value,
+                    fontSize: parseFloat(document.getElementById('font-size').value),
+                    fontWeight: document.getElementById('font-weight').value,
+                    fontStyle: document.getElementById('text-style').value,
+                    fill: parseInt(document.getElementById('text-color-hex').value.replace('#', '0x')),
+                    align: document.getElementById('text-align').value,
+                    letterSpacing: parseFloat(document.getElementById('letter-spacing').value),
+                    lineHeight: parseFloat(document.getElementById('line-height').value) * parseFloat(document.getElementById('font-size').value),
+                    stroke: parseFloat(document.getElementById('stroke-width').value) > 0 ? parseInt(document.getElementById('stroke-color').value.replace('#', '0x')) : null,
+                    strokeThickness: parseFloat(document.getElementById('stroke-width').value),
+                    wordWrap: document.getElementById('word-wrap').checked,
+                    wordWrapWidth: document.getElementById('word-wrap').checked ? parseFloat(document.getElementById('wrap-width').value) : 0,
+                    transformedText: textContent,
+                    scale: {
+                        x: parseFloat(document.getElementById('scale-x').value),
+                        y: parseFloat(document.getElementById('scale-y').value)
+                    },
+                    offset: {
+                        x: parseFloat(document.getElementById('offset-x').value),
+                        y: parseFloat(document.getElementById('offset-y').value)
+                    },
+                    padding: {
+                        top: parseFloat(document.getElementById('padding-top').value),
+                        bottom: parseFloat(document.getElementById('padding-bottom').value),
+                        left: parseFloat(document.getElementById('padding-left').value),
+                        right: parseFloat(document.getElementById('padding-right').value)
+                    },
+                    pivot: {
+                        x: parseFloat(document.getElementById('pivot-x').value),
+                        y: parseFloat(document.getElementById('pivot-y').value)
+                    },
+                    rotation: parseFloat(document.getElementById('text-rotation').value) * (Math.PI / 180), // Convert to radians
+                    skew: {
+                        x: parseFloat(document.getElementById('skew-x').value) * (Math.PI / 180)
+                    },
+                    effects: {
+                        dropShadow: document.getElementById('drop-shadow').checked,
+                        shadowColor: parseInt(document.getElementById('shadow-color-hex').value.replace('#', '0x')),
+                        shadowAlpha: parseFloat(document.getElementById('shadow-alpha').value),
+                        shadowOffset: { x: 1, y: 1 },
+                        shadowBlur: parseFloat(document.getElementById('shadow-blur').value),
+                        glow: document.getElementById('text-glow').checked,
+                        outline: document.getElementById('text-outline').checked,
+                        outlineWidth: parseFloat(document.getElementById('outline-width').value),
+                        gradient: document.getElementById('text-gradient').checked,
+                        gradientColor1: parseInt(document.getElementById('gradient-color-1').value.replace('#', '0x')),
+                        gradientColor2: parseInt(document.getElementById('gradient-color-2').value.replace('#', '0x')),
+                        gradientAngle: parseFloat(document.getElementById('gradient-angle').value)
+                    }
+                };
+            }
+            
+            loadPresetToUI() {
+                const preset = NodeTextStyleManager.presets[this.currentStyle];
+                if (!preset) return;
+                
+                // Font properties
+                document.getElementById('font-family').value = preset.fontFamily;
+                document.getElementById('font-size').value = preset.fontSize;
+                document.getElementById('font-size-num').value = preset.fontSize;
+                document.getElementById('font-weight').value = preset.fontWeight;
+                document.getElementById('text-color').value = '#' + preset.fill.toString(16).padStart(6, '0');
+                document.getElementById('text-color-hex').value = '#' + preset.fill.toString(16).padStart(6, '0');
+                document.getElementById('text-align').value = preset.align;
+                
+                // Scale & Transform
+                document.getElementById('scale-x').value = preset.scale.x;
+                document.getElementById('scale-x-num').value = preset.scale.x;
+                document.getElementById('scale-y').value = preset.scale.y;
+                document.getElementById('scale-y-num').value = preset.scale.y;
+                document.getElementById('offset-x').value = preset.offset.x;
+                document.getElementById('offset-x-num').value = preset.offset.x;
+                document.getElementById('offset-y').value = preset.offset.y;
+                document.getElementById('offset-y-num').value = preset.offset.y;
+                
+                // Pivot
+                document.getElementById('pivot-x').value = preset.pivot.x;
+                document.getElementById('pivot-x-num').value = preset.pivot.x;
+                document.getElementById('pivot-y').value = preset.pivot.y;
+                document.getElementById('pivot-y-num').value = preset.pivot.y;
+                
+                // Padding
+                document.getElementById('padding-top').value = preset.padding.top;
+                document.getElementById('padding-top-num').value = preset.padding.top;
+                document.getElementById('padding-bottom').value = preset.padding.bottom;
+                document.getElementById('padding-bottom-num').value = preset.padding.bottom;
+                document.getElementById('padding-left').value = preset.padding.left;
+                document.getElementById('padding-left-num').value = preset.padding.left;
+                document.getElementById('padding-right').value = preset.padding.right;
+                document.getElementById('padding-right-num').value = preset.padding.right;
+                
+                // Effects
+                if (preset.effects) {
+                    document.getElementById('drop-shadow').checked = preset.effects.dropShadow || false;
+                    document.getElementById('shadow-controls').style.display = preset.effects.dropShadow ? 'block' : 'none';
+                    
+                    if (preset.effects.shadowColor !== undefined) {
+                        document.getElementById('shadow-color').value = '#' + preset.effects.shadowColor.toString(16).padStart(6, '0');
+                        document.getElementById('shadow-color-hex').value = '#' + preset.effects.shadowColor.toString(16).padStart(6, '0');
+                    }
+                    
+                    if (preset.effects.shadowAlpha !== undefined) {
+                        document.getElementById('shadow-alpha').value = preset.effects.shadowAlpha;
+                        document.getElementById('shadow-alpha-num').value = preset.effects.shadowAlpha;
+                    }
+                    
+                    if (preset.effects.shadowBlur !== undefined) {
+                        document.getElementById('shadow-blur').value = preset.effects.shadowBlur;
+                        document.getElementById('shadow-blur-num').value = preset.effects.shadowBlur;
+                    }
+                    
+                    document.getElementById('text-glow').checked = preset.effects.glow || false;
+                    document.getElementById('text-outline').checked = preset.effects.outline || false;
+                    document.getElementById('outline-controls').style.display = preset.effects.outline ? 'block' : 'none';
+                    
+                    if (preset.effects.outlineWidth !== undefined) {
+                        document.getElementById('outline-width').value = preset.effects.outlineWidth;
+                        document.getElementById('outline-width-num').value = preset.effects.outlineWidth;
+                    }
+                }
+            }
+            
+            updatePreview() {
+                // Clear previous preview
+                this.previewContainer.removeChildren();
+                
+                // Get current style settings
+                const style = this.getCurrentStyleFromUI();
+                const text = style.transformedText || 'Sample Text';
+                
+                // Create PIXI TextStyle with all properties
+                const pixiStyle = new PIXI.TextStyle({
+                    fontFamily: style.fontFamily,
+                    fontSize: style.fontSize,
+                    fontWeight: style.fontWeight,
+                    fontStyle: style.fontStyle,
+                    fill: style.fill,
+                    align: style.align,
+                    letterSpacing: style.letterSpacing,
+                    lineHeight: style.lineHeight,
+                    stroke: style.stroke,
+                    strokeThickness: style.strokeThickness,
+                    wordWrap: style.wordWrap,
+                    wordWrapWidth: style.wordWrapWidth,
+                    dropShadow: style.effects.dropShadow,
+                    dropShadowColor: style.effects.shadowColor,
+                    dropShadowAlpha: style.effects.shadowAlpha,
+                    dropShadowAngle: Math.PI / 6,
+                    dropShadowBlur: style.effects.shadowBlur,
+                    dropShadowDistance: 2
+                });
+                
+                // Create PIXI Text with the style
+                this.previewText = new PIXI.Text(text, pixiStyle);
+                
+                // Apply transforms
+                this.previewText.anchor.set(style.pivot.x, style.pivot.y);
+                this.previewText.scale.set(style.scale.x, style.scale.y);
+                this.previewText.rotation = style.rotation;
+                this.previewText.skew.x = style.skew.x;
+                this.previewText.x = style.offset.x;
+                this.previewText.y = style.offset.y;
+                
+                // Apply gradient if enabled
+                if (style.effects.gradient) {
+                    const gradient = new PIXI.FillGradient(0, 0, 0, this.previewText.height);
+                    gradient.addColorStop(0, style.effects.gradientColor1);
+                    gradient.addColorStop(1, style.effects.gradientColor2);
+                    this.previewText.style.fill = gradient;
+                }
+                
+                this.previewContainer.addChild(this.previewText);
+            }
+            
+            addSampleNode() {
+                // Create a sample node rectangle
+                const nodeRect = new PIXI.Graphics();
+                nodeRect.beginFill(0x2d3748);
+                nodeRect.lineStyle(2, 0x4a9eff);
+                nodeRect.drawRoundedRect(-60, -30, 120, 60, 8);
+                nodeRect.endFill();
+                
+                const sampleContainer = new PIXI.Container();
+                sampleContainer.addChild(nodeRect);
+                
+                // Add current styled text to the node
+                const style = this.getCurrentStyleFromUI();
+                const nodeText = NodeTextStyleManager.createStyledText(
+                    document.getElementById('preview-text').value || 'Sample Node',
+                    this.currentStyle,
+                    { x: 0, y: 0 },
+                    style
+                );
+                
+                sampleContainer.addChild(nodeText);
+                
+                // Position randomly
+                sampleContainer.x = Math.random() * (this.app.canvas.width - 200) + 100;
+                sampleContainer.y = Math.random() * (this.app.canvas.height - 200) + 100;
+                
+                this.app.stage.addChild(sampleContainer);
+            }
+            
+            showAllTextTypes() {
+                // COMPLETELY CLEAR everything including preview container
+                this.app.stage.removeChildren();
+                this.showingAllTypes = true;
+                
+                const textTypes = ['title', 'category', 'parameter', 'port', 'value'];
+                const sampleTexts = {
+                    'title': 'Sample Node Title - Math Operations',
+                    'category': 'MATH CATEGORY',
+                    'parameter': 'Parameter Value: 127.5',
+                    'port': 'Input Port A',
+                    'value': 'Output: 42.0'
+                };
+                
+                const startY = 50;
+                const rowHeight = 120;
+                const centerX = this.app.canvas.width / 2;
+                
+                textTypes.forEach((type, index) => {
+                    const rowY = startY + index * rowHeight;
+                    
+                    // CREATE ROW SEPARATOR LINE
+                    if (index > 0) {
+                        const separator = new PIXI.Graphics();
+                        separator.lineStyle(1, 0x444444, 0.8);
+                        separator.moveTo(50, rowY - 60);
+                        separator.lineTo(this.app.canvas.width - 50, rowY - 60);
+                        this.app.stage.addChild(separator);
+                    }
+                    
+                    // Create LARGE background area for text type
+                    const bg = new PIXI.Graphics();
+                    bg.beginFill(0x1a1a2e, 0.3);
+                    bg.lineStyle(2, 0x4a9eff, 0.3);
+                    bg.drawRoundedRect(-300, -30, 600, 60, 12);
+                    bg.endFill();
+                    
+                    const container = new PIXI.Container();
+                    container.addChild(bg);
+                    
+                    // Add LARGE type label on the left
+                    const typeLabel = new PIXI.Text(type.toUpperCase(), {
+                        fontFamily: 'Arial Black, sans-serif',
+                        fontSize: 16,
+                        fill: 0x4a9eff,
+                        fontWeight: 'bold'
+                    });
+                    typeLabel.anchor.set(1, 0.5);
+                    typeLabel.x = -320;
+                    typeLabel.y = 0;
+                    container.addChild(typeLabel);
+                    
+                    // Add BIG styled text using preset
+                    const preset = NodeTextStyleManager.presets[type];
+                    if (preset) {
+                        // Scale up the preset for display using DPI input
+                        const dpiScale = parseFloat(document.getElementById('dpi-scale').value) || 2.5;
+                        const displayPreset = { ...preset };
+                        displayPreset.fontSize = preset.fontSize * dpiScale;
+                        
+                        // Create PIXI Text directly with scaled style
+                        const pixiStyle = new PIXI.TextStyle({
+                            fontFamily: preset.fontFamily || 'Arial',
+                            fontSize: preset.fontSize * dpiScale,
+                            fontWeight: preset.fontWeight || 'normal',
+                            fill: preset.fill || 0xffffff,
+                            align: preset.align || 'center',
+                            dropShadow: preset.effects?.dropShadow || false,
+                            dropShadowColor: preset.effects?.shadowColor || 0x000000,
+                            dropShadowAlpha: preset.effects?.shadowAlpha || 0.8,
+                            dropShadowAngle: Math.PI / 6,
+                            dropShadowBlur: (preset.effects?.shadowBlur || 2) * dpiScale,
+                            dropShadowDistance: 2 * dpiScale
+                        });
+                        
+                        const styledText = new PIXI.Text(sampleTexts[type], pixiStyle);
+                        styledText.anchor.set(0.5, 0.5);
+                        
+                        // Add subtle gizmos and guides
+                        this.addTextGizmos(container, styledText, preset, displayPreset);
+                        
+                        container.addChild(styledText);
+                    }
+                    
+                    // Position in center of canvas
+                    container.x = centerX;
+                    container.y = rowY;
+                    
+                    this.app.stage.addChild(container);
+                });
+                
+                // Add title at top
+                const titleText = new PIXI.Text('ALL TEXT TYPES PREVIEW', {
+                    fontFamily: 'Arial Black, sans-serif',
+                    fontSize: 24,
+                    fill: 0x4a9eff,
+                    fontWeight: 'bold'
+                });
+                titleText.anchor.set(0.5);
+                titleText.x = centerX;
+                titleText.y = 20;
+                this.app.stage.addChild(titleText);
+                
+                console.log('🎨 Showing ALL text types BIG in canvas with separators');
+            }
+            
+            addTextGizmos(container, textObject, originalPreset, scaledPreset) {
+                const gizmoAlpha = 0.15; // Very subtle
+                const gizmoColor = 0x00ff00; // Green for guides
+                const paddingColor = 0xff8800; // Orange for padding
+                const anchorColor = 0xff0080; // Pink for anchor point
+                
+                // Get text bounds
+                const bounds = textObject.getBounds();
+                const localBounds = textObject.getLocalBounds();
+                
+                // TEXT BOUNDING BOX (actual text area)
+                const textBox = new PIXI.Graphics();
+                textBox.lineStyle(1, gizmoColor, gizmoAlpha * 2);
+                textBox.drawRect(localBounds.x, localBounds.y, localBounds.width, localBounds.height);
+                container.addChild(textBox);
+                
+                // PADDING AREA (if padding exists)
+                if (scaledPreset.padding) {
+                    const p = scaledPreset.padding;
+                    const paddingScale = 2.5; // Scale padding to match text scaling
+                    
+                    const paddingBox = new PIXI.Graphics();
+                    paddingBox.lineStyle(1, paddingColor, gizmoAlpha);
+                    paddingBox.beginFill(paddingColor, gizmoAlpha * 0.3);
+                    paddingBox.drawRect(
+                        localBounds.x - (p.left * paddingScale),
+                        localBounds.y - (p.top * paddingScale),
+                        localBounds.width + ((p.left + p.right) * paddingScale),
+                        localBounds.height + ((p.top + p.bottom) * paddingScale)
+                    );
+                    paddingBox.endFill();
+                    container.addChild(paddingBox);
+                }
+                
+                // ANCHOR POINT (pivot/center)
+                const anchorDot = new PIXI.Graphics();
+                anchorDot.beginFill(anchorColor, gizmoAlpha * 3);
+                anchorDot.drawCircle(0, 0, 3);
+                anchorDot.endFill();
+                
+                // Cross hairs for anchor
+                const crosshair = new PIXI.Graphics();
+                crosshair.lineStyle(1, anchorColor, gizmoAlpha * 2);
+                crosshair.moveTo(-8, 0);
+                crosshair.lineTo(8, 0);
+                crosshair.moveTo(0, -8);
+                crosshair.lineTo(0, 8);
+                
+                const anchorGroup = new PIXI.Container();
+                anchorGroup.addChild(crosshair);
+                anchorGroup.addChild(anchorDot);
+                container.addChild(anchorGroup);
+                
+                // BASELINE GUIDE (text baseline)
+                const baseline = new PIXI.Graphics();
+                baseline.lineStyle(1, 0x4a9eff, gizmoAlpha);
+                baseline.moveTo(localBounds.x - 20, 0);
+                baseline.lineTo(localBounds.x + localBounds.width + 20, 0);
+                container.addChild(baseline);
+                
+                // OFFSET INDICATORS (if text has offset)
+                if (scaledPreset.offset && (scaledPreset.offset.x !== 0 || scaledPreset.offset.y !== 0)) {
+                    const offsetScale = 2.5;
+                    const offsetLine = new PIXI.Graphics();
+                    offsetLine.lineStyle(1, 0xffff00, gizmoAlpha * 1.5);
+                    offsetLine.moveTo(0, 0);
+                    offsetLine.lineTo(scaledPreset.offset.x * offsetScale, scaledPreset.offset.y * offsetScale);
+                    
+                    // Arrow head for offset
+                    const arrowSize = 4;
+                    const angle = Math.atan2(scaledPreset.offset.y * offsetScale, scaledPreset.offset.x * offsetScale);
+                    offsetLine.moveTo(scaledPreset.offset.x * offsetScale, scaledPreset.offset.y * offsetScale);
+                    offsetLine.lineTo(
+                        (scaledPreset.offset.x * offsetScale) - arrowSize * Math.cos(angle - Math.PI/6),
+                        (scaledPreset.offset.y * offsetScale) - arrowSize * Math.sin(angle - Math.PI/6)
+                    );
+                    offsetLine.moveTo(scaledPreset.offset.x * offsetScale, scaledPreset.offset.y * offsetScale);
+                    offsetLine.lineTo(
+                        (scaledPreset.offset.x * offsetScale) - arrowSize * Math.cos(angle + Math.PI/6),
+                        (scaledPreset.offset.y * offsetScale) - arrowSize * Math.sin(angle + Math.PI/6)
+                    );
+                    
+                    container.addChild(offsetLine);
+                }
+                
+                // SCALE INDICATORS (if text is scaled)
+                if (scaledPreset.scale && (scaledPreset.scale.x !== 1 || scaledPreset.scale.y !== 1)) {
+                    const scaleBox = new PIXI.Graphics();
+                    scaleBox.lineStyle(1, 0x00ffff, gizmoAlpha);
+                    const scaledWidth = localBounds.width * scaledPreset.scale.x;
+                    const scaledHeight = localBounds.height * scaledPreset.scale.y;
+                    scaleBox.drawRect(
+                        localBounds.x * scaledPreset.scale.x,
+                        localBounds.y * scaledPreset.scale.y,
+                        scaledWidth,
+                        scaledHeight
+                    );
+                    container.addChild(scaleBox);
+                }
+                
+                // SMALL INFO LABELS
+                const infoText = new PIXI.Text(`${originalPreset.fontSize}px → ${scaledPreset.fontSize}px`, {
+                    fontFamily: 'Arial',
+                    fontSize: 10,
+                    fill: 0x888888,
+                    alpha: 0.7
+                });
+                infoText.x = localBounds.x + localBounds.width + 10;
+                infoText.y = localBounds.y;
+                container.addChild(infoText);
+            }
+            
+            resetScene() {
+                // Remove all children and recreate preview container
+                this.app.stage.removeChildren();
+                
+                // Recreate preview container if it doesn't exist
+                if (!this.previewContainer) {
+                    this.previewContainer = new PIXI.Container();
+                    this.previewContainer.x = (this.app.canvas.width) / 2;
+                    this.previewContainer.y = (this.app.canvas.height) / 2;
+                }
+                
+                this.app.stage.addChild(this.previewContainer);
+                this.showingAllTypes = false;
+                
+                // Immediately update preview to show something
+                this.updatePreview();
+            }
+            
+            forceShowText() {
+                // Force create a simple text to debug
+                this.app.stage.removeChildren();
+                
+                const debugText = new PIXI.Text('DEBUG: Text Editor Working!', {
+                    fontFamily: 'Arial',
+                    fontSize: 24,
+                    fill: 0xff0000,
+                    align: 'center'
+                });
+                
+                debugText.anchor.set(0.5);
+                debugText.x = this.app.canvas.width / 2;
+                debugText.y = this.app.canvas.height / 2;
+                
+                this.app.stage.addChild(debugText);
+                
+                console.log('🔧 Debug text forced to show');
+                console.log('Canvas size:', this.app.canvas.width, 'x', this.app.canvas.height);
+                console.log('Stage children:', this.app.stage.children.length);
+            }
+            
+            saveCurrentAsPreset() {
+                const styleName = document.getElementById('style-name').value || 'custom-style';
+                const style = this.getCurrentStyleFromUI();
+                
+                NodeTextStyleManager.saveCustomStyle(styleName, style);
+                alert(`Style "${styleName}" saved successfully!`);
+            }
+            
+            exportStyleJSON() {
+                const style = this.getCurrentStyleFromUI();
+                const json = JSON.stringify(style, null, 2);
+                
+                // Create download
+                const blob = new Blob([json], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `${this.currentStyle}-style.json`;
+                a.click();
+                URL.revokeObjectURL(url);
+            }
+            
+            // AUTOSAVE FUNCTIONALITY
+            autoSave() {
+                clearTimeout(this.autoSaveTimeout);
+                this.autoSaveTimeout = setTimeout(() => {
+                    const style = this.getCurrentStyleFromUI();
+                    const storageKey = `textStyleEditor_${this.currentStyle}`;
+                    localStorage.setItem(storageKey, JSON.stringify(style));
+                    
+                    // Show autosave indicator
+                    this.showAutoSaveIndicator();
+                }, 500); // Debounce 500ms
+            }
+            
+            showAutoSaveIndicator() {
+                const indicator = document.getElementById('autosave-indicator');
+                if (indicator) {
+                    indicator.style.opacity = '1';
+                    setTimeout(() => {
+                        indicator.style.opacity = '0';
+                    }, 1000);
+                }
+            }
+        }
+        
+        // 🚀 Initialize when DOM is ready
+        document.addEventListener('DOMContentLoaded', () => {
+            new NodeTextStyleEditor();
+        });
+    </script>
+</body>
+</html>

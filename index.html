@@ -1,0 +1,3488 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎮 PLEXUS - INDUSTRY-GRADE NODE EDITOR (PIXI)</title>
+    
+    <!-- Dynamic styles loaded from modules -->
+    <style id="dynamic-styles">
+        /* Styles will be injected from pixi-ui-styles.js */
+        
+        /* RIGHT TOOLBAR - USING PLEXUS UI STYLES */
+        #right-toolbar {
+            font-family: 'Courier New', monospace;
+        }
+        
+        #preview-tab:hover {
+            transform: translateX(-2px);
+            box-shadow: -4px 0 16px rgba(74, 158, 255, 0.2);
+        }
+        
+        #preview-tab:hover .button-glow {
+            opacity: 1;
+        }
+        
+        .toolbar-button-placeholder:hover {
+            opacity: 0.6;
+            transform: translateX(-1px);
+            box-shadow: -2px 0 8px rgba(0,0,0,0.3);
+        }
+        
+        #minimize-toolbar:hover {
+            background: #3a3a3a;
+            transform: translateX(-1px);
+        }
+        
+        /* TOOLBAR MINIMIZE ANIMATION */
+        #right-toolbar.minimized {
+            width: 20px;
+            padding: 10px 0;
+        }
+        
+        #right-toolbar.minimized #preview-tab,
+        #right-toolbar.minimized .toolbar-button-placeholder {
+            width: 16px;
+            height: 16px;
+            font-size: 8px;
+        }
+        
+        #right-toolbar.minimized #minimize-toolbar div {
+            transform: rotate(180deg);
+        }
+    </style>
+</head>
+<body>
+    <!-- Loading Indicator -->
+    <div class="loading-indicator" id="loading-indicator">
+        <div>🔄 Loading Dynamic Nodes...</div>
+        <div class="loading-progress">
+            <div class="loading-bar" id="loading-bar"></div>
+        </div>
+        <div id="loading-status">Scanning node directories...</div>
+    </div>
+
+
+
+    <!-- THINNER ANGULAR TOOLBAR -->
+    <div id="right-toolbar" style="
+        position: fixed;
+        right: 0;
+        top: 40px;
+        height: calc(100vh - 40px);
+        width: 35px;
+        background: #2a2a2a;
+        border-left: 1px solid #555;
+        box-shadow: -4px 0 12px rgba(0,0,0,0.4);
+        z-index: 8500;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 15px 0;
+        gap: 12px;
+        font-family: 'Courier New', monospace;
+    ">
+        <!-- ANGULAR 3D BUTTON (STICKS OUT) -->
+        <div id="preview-tab" style="
+            width: 50px;
+            height: 60px;
+            background: #333;
+            border: 1px solid #555;
+            border-right: none;
+            border-radius: 0;
+            clip-path: polygon(0 0, calc(100% - 8px) 0, 100% 50%, calc(100% - 8px) 100%, 0 100%);
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 3px;
+            box-shadow: -2px 0 8px rgba(0,0,0,0.3);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+            margin-left: 8px;
+            z-index: 10;
+        ">
+            <!-- GLOW EFFECT -->
+            <div style="
+                position: absolute;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background: linear-gradient(135deg, rgba(74, 158, 255, 0.1), rgba(255, 136, 74, 0.1));
+                opacity: 0;
+                transition: opacity 0.3s ease;
+                border-radius: 12px;
+            " class="button-glow"></div>
+            
+            <div style="
+                color: #4a9eff;
+                font-size: 16px;
+                z-index: 1;
+            ">🎮</div>
+            <div style="
+                color: #999;
+                font-size: 8px;
+                font-weight: 600;
+                letter-spacing: 0.5px;
+                z-index: 1;
+            ">3D</div>
+        </div>
+
+        <!-- SPACER -->
+        <div style="
+            width: 30px;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, #333, transparent);
+            margin: 5px 0;
+        "></div>
+
+        <!-- ANGULAR PLACEHOLDER BUTTONS -->
+        <div class="toolbar-button-placeholder" style="
+            width: 40px;
+            height: 40px;
+            background: #1a1a1a;
+            border: 1px solid #333;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0.4;
+            transition: all 0.3s ease;
+            font-family: 'Courier New', monospace;
+        ">
+            <div style="color: #666; font-size: 10px;">SET</div>
+        </div>
+
+        <div class="toolbar-button-placeholder" style="
+            width: 40px;
+            height: 40px;
+            background: #1a1a1a;
+            border: 1px solid #333;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0.4;
+            transition: all 0.3s ease;
+            font-family: 'Courier New', monospace;
+        ">
+            <div style="color: #666; font-size: 10px;">LOG</div>
+        </div>
+
+        <div class="toolbar-button-placeholder" style="
+            width: 40px;
+            height: 40px;
+            background: #1a1a1a;
+            border: 1px solid #333;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0.4;
+            transition: all 0.3s ease;
+            font-family: 'Courier New', monospace;
+        ">
+            <div style="color: #666; font-size: 10px;">DBG</div>
+        </div>
+
+        <!-- BOTTOM SPACER -->
+        <div style="flex: 1;"></div>
+
+        <!-- ANGULAR MINIMIZE BUTTON -->
+        <div id="minimize-toolbar" style="
+            width: 30px;
+            height: 20px;
+            background: #1a1a1a;
+            border: 1px solid #333;
+            border-radius: 2px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+            margin-bottom: 10px;
+            font-family: 'Courier New', monospace;
+        ">
+            <div style="color: #666; font-size: 8px; font-weight: bold;">‹</div>
+        </div>
+    </div>
+
+    <!-- WebGL window now created dynamically by WebGLPreview.js -->
+
+
+    <!-- AUTO SAVE INDICATOR -->
+    <div id="save-indicator" style="
+        position: fixed;
+        top: 10px;
+        right: 10px;
+        background: rgba(0, 0, 0, 0.9);
+        color: #00ff88;
+        padding: 8px 12px;
+        border-radius: 5px;
+        font-family: Monaco, monospace;
+        font-size: 12px;
+        z-index: 9999;
+        border: 1px solid #00ff88;
+        display: none;
+        transition: all 0.3s ease;
+        box-shadow: 0 2px 10px rgba(0,255,136,0.3);
+    "></div>
+
+    <!-- Ugly button removed - using sleek sliding tab instead -->
+
+    <!-- PLEXUS LOGO -->
+    <img src="imgs/plexus_logo.png" id="plexus-logo" style="
+        position: fixed;
+        bottom: 20px;
+        right: 80px;
+        width: 60px;
+        height: 60px;
+        opacity: 0.8;
+        z-index: 9999;
+        transition: opacity 0.3s ease;
+        border-radius: 6px;
+    " onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.8'" title="Plexus Node Editor">
+
+    <!-- SAVE NETWORK POPUP -->
+    <div id="save-network-popup" style="
+        display: none;
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: rgba(20, 20, 20, 0.95);
+        border: 2px solid #00ff88;
+        border-radius: 10px;
+        padding: 20px;
+        z-index: 10000;
+        box-shadow: 0 10px 30px rgba(0, 255, 136, 0.3);
+        backdrop-filter: blur(10px);
+        font-family: Monaco, monospace;
+        color: #ccc;
+        min-width: 400px;
+    ">
+        <h3 style="color: #00ff88; margin: 0 0 15px 0; text-align: center;">💾 Save Network</h3>
+        <div style="margin-bottom: 15px;">
+            <label style="display: block; margin-bottom: 5px; color: #00ff88;">Network Name:</label>
+            <input id="network-name-input" type="text" placeholder="My Custom Network" style="
+                width: 100%;
+                padding: 8px;
+                background: rgba(40, 40, 40, 0.8);
+                border: 1px solid #666;
+                border-radius: 5px;
+                color: #fff;
+                font-family: Monaco, monospace;
+                box-sizing: border-box;
+            ">
+        </div>
+        <div style="margin-bottom: 15px;">
+            <label style="display: block; margin-bottom: 5px; color: #00ff88;">Description:</label>
+            <textarea id="network-description-input" placeholder="Describe what this network does..." style="
+                width: 100%;
+                height: 60px;
+                padding: 8px;
+                background: rgba(40, 40, 40, 0.8);
+                border: 1px solid #666;
+                border-radius: 5px;
+                color: #fff;
+                font-family: Monaco, monospace;
+                resize: vertical;
+                box-sizing: border-box;
+            "></textarea>
+        </div>
+        <div style="margin-bottom: 15px;">
+            <label style="display: block; margin-bottom: 5px; color: #00ff88;">Category:</label>
+            <select id="network-category-input" style="
+                width: 100%;
+                padding: 8px;
+                background: rgba(40, 40, 40, 0.8);
+                border: 1px solid #666;
+                border-radius: 5px;
+                color: #fff;
+                font-family: Monaco, monospace;
+                box-sizing: border-box;
+            ">
+                <option value="custom">Custom</option>
+                <option value="math">Math</option>
+                <option value="vector">Vector</option>
+                <option value="logic">Logic</option>
+                <option value="data">Data</option>
+                <option value="effects">Effects</option>
+            </select>
+        </div>
+        <div style="margin-bottom: 15px;">
+            <label style="display: flex; align-items: center; color: #00ff88; cursor: pointer;">
+                <input id="save-as-custom-node" type="checkbox" style="
+                    margin-right: 8px;
+                    transform: scale(1.2);
+                    accent-color: #00ff88;
+                ">
+                <span>Save as Custom Node</span>
+            </label>
+            <p style="margin: 5px 0 0 0; font-size: 11px; color: #999; font-style: italic;">
+                Creates a reusable node that can be added to other graphs
+            </p>
+        </div>
+        <div id="custom-node-config" style="display: none; margin-bottom: 15px; padding: 10px; background: rgba(0, 255, 136, 0.1); border: 1px solid rgba(0, 255, 136, 0.3); border-radius: 5px;">
+            <div style="margin-bottom: 10px;">
+                <label style="display: block; margin-bottom: 5px; color: #00ff88; font-size: 11px;">Auto-detected Inputs:</label>
+                <div id="detected-inputs" style="
+                    padding: 6px;
+                    background: rgba(40, 40, 40, 0.8);
+                    border: 1px solid #666;
+                    border-radius: 3px;
+                    color: #ccc;
+                    font-family: Monaco, monospace;
+                    font-size: 11px;
+                    min-height: 20px;
+                    font-style: italic;
+                ">Auto-detecting...</div>
+            </div>
+            <div style="margin-bottom: 10px;">
+                <label style="display: block; margin-bottom: 5px; color: #00ff88; font-size: 11px;">Auto-detected Outputs:</label>
+                <div id="detected-outputs" style="
+                    padding: 6px;
+                    background: rgba(40, 40, 40, 0.8);
+                    border: 1px solid #666;
+                    border-radius: 3px;
+                    color: #ccc;
+                    font-family: Monaco, monospace;
+                    font-size: 11px;
+                    min-height: 20px;
+                    font-style: italic;
+                ">Auto-detecting...</div>
+            </div>
+            <div>
+                <label style="display: block; margin-bottom: 5px; color: #00ff88; font-size: 11px;">Node Color:</label>
+                <select id="custom-node-color" style="
+                    width: 100%;
+                    padding: 6px;
+                    background: rgba(40, 40, 40, 0.8);
+                    border: 1px solid #666;
+                    border-radius: 3px;
+                    color: #fff;
+                    font-family: Monaco, monospace;
+                    font-size: 11px;
+                    box-sizing: border-box;
+                ">
+                    <option value="#4CAF50">Green (Default)</option>
+                    <option value="#2196F3">Blue</option>
+                    <option value="#FF9800">Orange</option>
+                    <option value="#9C27B0">Purple</option>
+                    <option value="#F44336">Red</option>
+                    <option value="#795548">Brown</option>
+                </select>
+            </div>
+        </div>
+        <div style="display: flex; gap: 10px; justify-content: center;">
+            <button onclick="saveCurrentNetwork()" style="
+                background: #00ff88;
+                color: #000;
+                border: none;
+                padding: 10px 20px;
+                border-radius: 5px;
+                cursor: pointer;
+                font-family: Monaco, monospace;
+                font-weight: bold;
+            ">💾 Save</button>
+            <button onclick="hideSaveNetworkPopup()" style="
+                background: #666;
+                color: #fff;
+                border: none;
+                padding: 10px 20px;
+                border-radius: 5px;
+                cursor: pointer;
+                font-family: Monaco, monospace;
+            ">Cancel</button>
+        </div>
+    </div>
+
+    <!-- LOAD NETWORK POPUP -->
+    <div id="load-network-popup" style="
+        display: none;
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: rgba(20, 20, 20, 0.95);
+        border: 2px solid #4a9eff;
+        border-radius: 10px;
+        padding: 20px;
+        z-index: 10000;
+        box-shadow: 0 10px 30px rgba(74, 158, 255, 0.3);
+        backdrop-filter: blur(10px);
+        font-family: Monaco, monospace;
+        color: #ccc;
+        min-width: 400px;
+        max-height: 600px;
+        overflow-y: auto;
+    ">
+        <h3 style="color: #4a9eff; margin: 0 0 15px 0; text-align: center;">📂 Load Network</h3>
+        <div id="custom-networks-list" style="margin-bottom: 15px;">
+            <!-- Custom networks will be populated here -->
+        </div>
+        <div style="display: flex; gap: 10px; justify-content: center; margin-top: 15px;">
+            <button onclick="hideLoadNetworkPopup()" style="
+                background: #666;
+                color: #fff;
+                border: none;
+                padding: 10px 20px;
+                border-radius: 5px;
+                cursor: pointer;
+                font-family: Monaco, monospace;
+            ">Cancel</button>
+        </div>
+    </div>
+
+    <!-- UI Overlays -->
+    <div class="ui-overlay">
+        <!-- Status -->
+        <div class="status">
+            <div id="status-text">Loading...</div>
+        </div>
+
+    </div>
+
+    <!-- PIXI.js v8 with ALL filters included -->
+    <script src="https://unpkg.com/pixi.js@8.4.1/dist/pixi.min.js"></script>
+    
+    <!-- External modular styles -->
+    <script src="style/pixi-ui-styles.js"></script>
+    <script src="style/pixi-welcome-popup.js"></script>
+    <script src="style/pixi-credits-popup.js"></script>
+    <script src="style/pixi-context-menu.js"></script>
+    <script src="style/pixi-icons.js"></script>
+    <script src="style/pixi-layout.js"></script>
+    <script src="style/pixi-effects.js"></script>
+    <script src="style/pixi-node-styles.js"></script>
+    <script src="style/pixi-node-text-manager.js"></script>
+    <script src="style/pixi-wire-renderer.js"></script>
+    <script src="core/systems/IconManager.js"></script>
+    <script src="style/pixi-node-renderer.js"></script>
+    <script src="style/pixi-tab-renderer.js"></script>
+    
+    <!-- THEME SYSTEM -->
+    <script src="js/ThemeSystem.js"></script>
+
+    <script src="core/systems/ParameterEditor.js"></script>
+    <script src="core/systems/AutoSave.js"></script>
+    <script src="core/systems/ColorModeSystem.js"></script>
+    <script src="core/systems/WebGLPreview.js"></script>
+    <script>
+        class StandalonePixiNodeSystem {
+            constructor() {
+                this.selectedNodes = new Set();
+                this.zoom = .75;
+                this.pan = { x: 0, y: 0 };
+2                
+                // SMOOTH DAMPING - target values for smooth interpolation
+                this.targetZoom = 1.0;
+                this.targetPan = { x: 0, y: 0 };
+                this.smoothingFactor = 0.15; // Higher = more responsive, Lower = smoother
+                this.showGrid = true;
+                
+                // THEME SYSTEM - Initialize theme manager
+                this.themeSystem = null;
+                
+                // TAB SYSTEM INTEGRATION
+                this.eventSystem = null;
+                this.tabSystem = null;
+                this.isTabSystemActive = false;
+                
+                // Node data storage
+                this.nodes = [];
+                this.draggedNode = null;
+                this.isDragging = false;
+                this.isPanning = false;
+                
+                // SELECTION SYSTEM
+                this.isRectSelecting = false;
+                this.rectSelectStart = null;
+                this.selectionBox = null;
+                this.multiDragOffset = new Map();
+                this.clipboard = [];
+                
+                // LAST SELECTED NODE STATE
+                this.lastSelectedNode = null;
+                this.primarySelectedNode = null;
+                
+                // CONNECTION SYSTEM
+                this.connections = [];
+                this.selectedConnections = new Set();
+                this.activeConnection = null;
+                this.isConnecting = false;
+                this.connectionPreview = null;
+                this.hoveredPort = null;
+                this.previewUpdatePending = false;
+                this.connectionUpdatePending = false;
+                
+                // Dynamic node loading
+                this.nodeDefinitions = [];
+                this.loadingProgress = 0;
+                
+                // Load external modular styles
+                this.styles = window.PixiNodeStyles;
+                this.uiStyles = window.PixiUIStyles;
+                this.icons = window.PixiIcons;
+                this.layout = window.PixiLayout;
+                this.effects = window.PixiEffects;
+                
+
+                
+                // Inject UI styles
+                this.injectUIStyles();
+                
+                // Initialize systems
+                this.initializeSystems();
+            }
+
+            // Inject UI styles from module
+            injectUIStyles() {
+                const styleElement = document.getElementById('dynamic-styles');
+                if (styleElement && this.uiStyles) {
+                    styleElement.textContent = this.uiStyles.generateCSS();
+                }
+            }
+
+            // INITIALIZE core systems
+            async initializeSystems() {
+                try {
+                    // Load systems dynamically - will fallback to inline if modules fail
+                    const eventSystemResponse = await fetch('core/systems/EventSystem.js');
+                    const tabSystemResponse = await fetch('core/systems/TabSystem.js');
+                    
+                    if (eventSystemResponse.ok && tabSystemResponse.ok) {
+                        const eventSystemCode = await eventSystemResponse.text();
+                        const tabSystemCode = await tabSystemResponse.text();
+                        
+                        // Create inline versions for compatibility
+                        eval(eventSystemCode.replace('export default EventSystem;', 'window.EventSystem = EventSystem;'));
+                        eval(tabSystemCode.replace('export default TabSystem;', 'window.TabSystem = TabSystem;'));
+                        
+                        this.eventSystem = new window.EventSystem();
+                        this.tabSystem = new window.TabSystem(this.eventSystem);
+                        
+                        // Setup tab system event listeners
+                        this.setupTabEventListeners();
+                        
+
+                    } else {
+                        throw new Error('Could not load system files');
+                    }
+                } catch (error) {
+                    // Failed to load modular systems, using standalone mode
+                    this.isTabSystemActive = false;
+                }
+            }
+
+            // TAB SYSTEM EVENT LISTENERS
+            setupTabEventListeners() {
+                this.eventSystem.on('tab:activated', (data) => {
+                    console.log('🎯 Tab activated:', data.current.name);
+                    
+                    // Save current graph state before switching
+                    if (data.previous && this.autoSave) {
+                        this.autoSave.saveTabData(data.previous.id);
+                    }
+                    
+                    // Load new tab's graph state
+                    this.loadTabData(data.current);
+                    this.applyTabSettings(data.current);
+                });
+                
+                this.eventSystem.on('tab:settings:changed', (data) => {
+                    this.applyTabSettings(data.tab);
+                });
+                
+                this.eventSystem.on('tab:modified', (tab) => {
+                    // Tab marked as modified - trigger autosave
+                    if (this.autoSave) {
+                        this.autoSave.markTabModified(tab.id);
+                    }
+                });
+                
+                this.eventSystem.on('tab:created', (tab) => {
+                    console.log('📑 Tab created:', tab.name);
+                    
+                    // Initialize empty graph for new tab
+                    this.initializeTabGraph(tab);
+                });
+                
+                this.eventSystem.on('tab:closed', (data) => {
+                    console.log('🗑️ Tab closed:', data.tab.name);
+                    
+                    // Clean up autosave data for closed tab
+                    if (this.autoSave) {
+                        this.autoSave.cleanupTabData(data.tab.id);
+                    }
+                });
+            }
+
+            // APPLY tab settings to the node system
+            applyTabSettings(tab) {
+                if (!tab.settings) return;
+                
+                // Apply grid setting
+                if (this.showGrid !== tab.settings.showGrid) {
+                    this.showGrid = tab.settings.showGrid;
+                    this.updateGrid();
+                }
+                
+                // Apply theme via theme system
+                if (this.themeSystem) {
+                    this.themeSystem.updateFromTabSettings(tab.settings);
+                }
+                
+
+            }
+
+            // MARK current tab as having unsaved changes
+            markCurrentTabUnsaved() {
+                if (this.tabSystem && this.tabSystem.getActiveTab()) {
+                    const activeTab = this.tabSystem.getActiveTab();
+                    this.tabSystem.markUnsaved(activeTab.id);
+                    
+                    // Update tab UI
+                    if (window.PixiTabRenderer) {
+                        window.PixiTabRenderer.markTabUnsaved(activeTab.id);
+                    }
+                }
+            }
+
+            // LOAD tab graph data
+            loadTabData(tab) {
+                if (!tab.graphInstance) {
+                    // Initialize empty graph for new tab
+                    this.initializeTabGraph(tab);
+                    return;
+                }
+
+                // Clear current graph
+                this.clearGraph();
+
+                // Load saved graph data
+                const graphData = tab.graphInstance;
+                if (graphData.nodes) {
+                    graphData.nodes.forEach(nodeData => {
+                        const nodeDefinition = this.nodeDefinitions.find(def => 
+                            def.title === nodeData.definition.title);
+                        if (nodeDefinition) {
+                            const newNode = this.addNode(nodeDefinition, nodeData.position.x, nodeData.position.y);
+                            if (nodeData.definition.params && newNode.definition.params) {
+                                nodeData.definition.params.forEach((savedParam, index) => {
+                                    if (newNode.definition.params[index]) {
+                                        newNode.definition.params[index].value = savedParam.value;
+                                    }
+                                });
+                            }
+                        }
+                    });
+                }
+
+                // Restore connections
+                if (graphData.connections) {
+                    setTimeout(() => {
+                        graphData.connections.forEach(connData => {
+                            const fromNode = this.nodes.find(n => n.id === connData.fromNodeId);
+                            const toNode = this.nodes.find(n => n.id === connData.toNodeId);
+
+                            if (fromNode && toNode) {
+                                const fromPort = fromNode.ports?.outputs?.find(p => p.def?.label === connData.fromPort);
+                                const toPort = toNode.ports?.inputs?.find(p => p.def?.label === connData.toPort);
+
+                                if (fromPort && toPort) {
+                                    this.createConnection(
+                                        fromPort.graphics, fromPort.def, fromNode,
+                                        toPort.graphics, toPort.def, toNode
+                                    );
+                                }
+                            }
+                        });
+                    }, 100);
+                }
+
+                // Restore viewport
+                if (graphData.viewport) {
+                    this.zoom = graphData.viewport.zoom;
+                    this.pan = { ...graphData.viewport.pan };
+                    this.targetZoom = this.zoom;
+                    this.targetPan = { ...this.pan };
+                }
+            }
+
+            // INITIALIZE empty graph for new tab
+            initializeTabGraph(tab) {
+                this.clearGraph();
+                
+                // Set default graph data
+                tab.graphInstance = {
+                    nodes: [],
+                    connections: [],
+                    viewport: { zoom: 0.75, pan: { x: 0, y: 0 } }
+                };
+            }
+
+            // CLEAR current graph
+            clearGraph() {
+                this.nodes = [];
+                this.connections = [];
+                this.selectedNodes.clear();
+                this.selectedConnections.clear();
+                if (this.nodeLayer) this.nodeLayer.removeChildren();
+                if (this.connectionLayer) this.connectionLayer.removeChildren();
+            }
+
+            // SAVE current graph state to tab
+            saveCurrentGraphToTab() {
+                if (!this.tabSystem) return;
+                
+                const activeTab = this.tabSystem.getActiveTab();
+                if (!activeTab) return;
+
+                // Serialize current graph state
+                activeTab.graphInstance = {
+                    nodes: this.nodes.map(node => ({
+                        id: node.id,
+                        definition: {
+                            title: node.definition.title,
+                            category: node.definition.category,
+                            params: node.definition.params?.map(param => ({
+                                ...param,
+                                value: param.value
+                            }))
+                        },
+                        position: {
+                            x: node.container.x,
+                            y: node.container.y
+                        }
+                    })),
+                    connections: this.connections?.map(conn => ({
+                        id: conn.id,
+                        fromNodeId: conn.fromNode?.id,
+                        fromPort: conn.fromDef?.label,
+                        toNodeId: conn.toNode?.id,
+                        toPort: conn.toDef?.label
+                    })) || [],
+                    viewport: {
+                        zoom: this.zoom,
+                        pan: { ...this.pan }
+                    }
+                };
+
+                console.log(`💾 Saved graph to tab: ${activeTab.name}`);
+            }
+
+            async initialize() {
+                await this.init();
+                return this;
+            }
+
+            async init() {
+
+                
+                try {
+                    // Load node definitions first
+                    await this.loadAllNodeDefinitions();
+                    
+                    // Create PIXI Application with HIGH-DPI support (v8 API)
+                    this.resolution = (window.devicePixelRatio || 1) * 2.1; // 2x DPI boost
+                    
+                    // PIXI v8 uses async initialization
+                    this.app = new PIXI.Application();
+                    await this.app.init({
+                        width: window.innerWidth,
+                        height: window.innerHeight,
+                        backgroundColor: 0x000000, // Black background for tiled image base
+                        antialias: true,
+                        resolution: this.resolution,
+                        autoDensity: true, // Automatically adjust for device pixel ratio
+                        powerPreference: 'high-performance'
+                    });
+                    
+                    // Ensure canvas scales properly for high-DPI displays (v8 uses canvas)
+                    this.app.canvas.style.width = window.innerWidth + 'px';
+                    this.app.canvas.style.height = window.innerHeight + 'px';
+                    
+                    document.body.appendChild(this.app.canvas);
+                    
+                    // Create viewport for zoom/pan
+                    this.viewport = new PIXI.Container();
+                    // Enable z-index sorting
+                    this.viewport.sortableChildren = true;
+                    this.app.stage.addChild(this.viewport);
+                    
+                    // Center viewport
+                    this.pan.x = window.innerWidth / 2;
+                    this.pan.y = window.innerHeight / 2;
+                    
+                    // Sync targets with initial values
+                    this.targetPan.x = this.pan.x;
+                    this.targetPan.y = this.pan.y;
+                    
+                    // START SMOOTH ANIMATION LOOP
+                    this.startSmoothAnimation();
+                    
+                    // Create layers
+                    this.gridLayer = new PIXI.Container();
+                    this.nodeLayer = new PIXI.Container();
+                    this.connectionLayer = new PIXI.Container();
+                    this.selectionLayer = new PIXI.Container();
+                    this.uiLayer = new PIXI.Container();
+
+                    // Assign z-index for proper stacking order
+                    this.gridLayer.zIndex = 0;
+                    this.nodeLayer.zIndex = 5;
+                    this.connectionLayer.zIndex = 10;
+                    this.selectionLayer.zIndex = 15; // ABOVE all other layers
+                    this.uiLayer.zIndex = 5;
+                    
+                    this.viewport.addChild(this.gridLayer);
+                    this.viewport.addChild(this.nodeLayer);
+                    this.viewport.addChild(this.connectionLayer);
+                    this.viewport.addChild(this.selectionLayer);
+                    this.viewport.addChild(this.uiLayer);
+                    
+                    // CREATE TILING BACKGROUND (after viewport is ready)
+                    await this.createTilingBackground();
+                    
+                    // Create selection box and connection preview
+                    this.createSelectionBox();
+                    this.createConnectionPreview();
+                    
+                    // Initialize systems
+                    this.createGrid();
+                    this.startAnimationSystem();
+                    
+                    // NO SPRITE SHEET - Using individual PNG files from imgs/icons/
+                    // Using individual icon files from imgs/icons/ folder
+                    
+                    // NO DEFAULT NODES - Start with empty canvas
+                    // window.PixiNodeRenderer.createNodesFromDefinitions(this);
+                    this.setupInteractions();
+                    this.setupUI();
+                    
+                    // Initialize tab system UI after everything is ready
+                    await this.initializeTabUI();
+                    
+                    this.updateViewport();
+                    this.updateStatus();
+                    
+
+                    
+                    // Initialize Parameter Editor
+                    this.initializeParameterEditor();
+                    
+                    // Initialize AutoSave System
+                    this.initializeAutoSave();
+                    
+                    // Initialize Theme System
+                    this.initializeThemeSystem();
+                    
+                    // Add manual save shortcut (Ctrl+S)
+                    this.setupManualSave();
+                    
+                    // Hide loading indicator
+                    document.getElementById('loading-indicator').style.display = 'none';
+                    
+                    // Standalone Node System initialized
+                    
+                } catch (error) {
+                    // Failed to initialize Standalone Node System
+                    document.getElementById('loading-status').textContent = 'Error loading nodes: ' + error.message;
+                }
+            }
+
+            // INITIALIZE PARAMETER EDITOR
+            initializeParameterEditor() {
+
+                try {
+                    this.parameterEditor = new ParameterEditor();
+                    this.parameterEditor.initialize(this);
+
+                } catch (error) {
+                    // Failed to initialize Parameter Editor
+                }
+            }
+
+            // INITIALIZE AUTOSAVE SYSTEM
+            initializeAutoSave() {
+
+                try {
+                    this.autoSave = new AutoSave();
+                    this.autoSave.initialize(this, {
+                        saveInterval: 30000, // 30 seconds
+                        maxBackups: 10,
+                        debounceTime: 2000,
+                        enabled: true,
+                        compression: true
+                    });
+
+                    // Connect AutoSave with TabSystem if available
+                    if (this.tabSystem) {
+                        const activeTab = this.tabSystem.getActiveTab();
+                        if (activeTab) {
+                            this.autoSave.setCurrentTab(activeTab.id);
+                        }
+                    }
+
+                } catch (error) {
+                    // Failed to initialize AutoSave System
+                }
+                
+                // INITIALIZE COLOR MODE SYSTEM
+                this.initializeColorModeSystem();
+            }
+            
+            // INITIALIZE COLOR MODE SYSTEM
+            initializeColorModeSystem() {
+                try {
+                    this.colorModeSystem = new ColorModeSystem();
+                    this.colorModeSystem.initialize(this.autoSave);
+                    
+                    console.log('🎨 ColorModeSystem integrated successfully');
+                } catch (error) {
+                    console.warn('⚠️ Failed to initialize ColorModeSystem:', error);
+                }
+            }
+
+            // INITIALIZE THEME SYSTEM
+            initializeThemeSystem() {
+                try {
+                    if (window.ThemeSystem) {
+                        this.themeSystem = new window.ThemeSystem(this);
+                        this.themeSystem.initialize();
+                    }
+                } catch (error) {
+                    console.warn('Failed to initialize Theme System:', error);
+                }
+            }
+
+            // SETUP MANUAL SAVE (Ctrl+S)
+            setupManualSave() {
+                document.addEventListener('keydown', (e) => {
+                    if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+                        e.preventDefault();
+                        // Manual save triggered
+                        if (this.autoSave) {
+                            this.autoSave.performSave();
+                        }
+                    }
+                });
+
+            }
+
+
+
+            // INITIALIZE tab UI
+            async initializeTabUI() {
+                // Attempting to initialize tab UI
+                
+                if (this.tabSystem && window.PixiTabRenderer) {
+                    try {
+                        window.PixiTabRenderer.initializeTabUI(this, this.tabSystem);
+                        this.isTabSystemActive = true;
+
+                    } catch (error) {
+                        // Failed to initialize tab UI
+                        this.isTabSystemActive = false;
+                    }
+                } else {
+                    // Tab system not available - falling back to basic mode
+                    // Create basic tab bar manually
+                    this.createFallbackTabBar();
+                }
+                
+                // FORCE tab creation IMMEDIATELY - don't wait
+                this.ensureTabsExist();
+            }
+
+            // FALLBACK tab bar creation
+            createFallbackTabBar() {
+
+                
+                const tabBar = document.createElement('div');
+                tabBar.id = 'fallback-tab-bar';
+                tabBar.innerHTML = `
+                    <div style="
+                        position: fixed;
+                        top: 0;
+                        left: 0;
+                        right: 0;
+                        height: 40px;
+                        background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+                        border-bottom: 2px solid #333;
+                        display: flex;
+                        align-items: center;
+                        z-index: 1000;
+                        font-family: 'Monaco', 'Menlo', 'Consolas', monospace;
+                        padding: 0 12px;
+                        color: #ccc;
+                        font-size: 12px;
+                    ">
+                        🎮 PLEXUS - Node Editor  - By Hugo Beyer
+                        <button onclick="alert('Full tab system loading...')" style="
+                            margin-left: auto;
+                            padding: 4px 8px;
+                            background: #2a2a2a;
+                            border: 1px solid #555;
+                            color: #ccc;
+                            border-radius: 2px;
+                            cursor: pointer;
+                        ">⚙️</button>
+                    </div>
+                `;
+                
+                document.body.insertBefore(tabBar, document.body.firstChild);
+                
+                // Adjust body padding
+                document.body.style.paddingTop = '50px';
+                
+
+            }
+
+            // ENSURE tabs exist
+            ensureTabsExist() {
+
+                
+                // ALWAYS create tab bar - don't check if it exists
+                let tabBar = document.querySelector('.tab-bar, #fallback-tab-bar');
+                
+                // Remove any existing tab bar first
+                if (tabBar) {
+                    tabBar.remove();
+                }
+                
+                if (true) { // Always create
+                    // No tab bar found, creating emergency tab bar
+                    
+                    const emergencyTabBar = document.createElement('div');
+                    emergencyTabBar.innerHTML = `
+                        <div style="
+                            position: fixed;
+                            top: 0;
+                            left: 0;
+                            right: 0;
+                            height: 32px;
+                            background: #2a2a2a;
+                            border-bottom: 1px solid #555;
+                            display: flex;
+                            align-items: center;
+                            z-index: 1000;
+                            font-family: Consolas, Monaco, monospace;
+                            color: #ccc;
+                            font-size: 11px;
+                        ">
+                            <div style="flex: 1; display: flex; height: 100%;">
+                                <div class="emergency-tab" style="
+                                    background: #4a4a4a;
+                                    border-right: 1px solid #666;
+                                    padding: 0 16px;
+                                    display: flex;
+                                    align-items: center;
+                                    cursor: pointer;
+                                    position: relative;
+                                ">
+                                    <span ondblclick="this.contentEditable=true; this.focus();" onblur="this.contentEditable=false;">Nested Graph</span>
+                                    <button onclick="this.parentElement.remove()" style="
+                                        margin-left: 12px;
+                                        background: none;
+                                        border: none;
+                                        color: #888;
+                                        cursor: pointer;
+                                        font-size: 14px;
+                                        padding: 2px;
+                                    ">×</button>
+                                </div>
+                            </div>
+                            
+                            <!-- SAVE/LOAD BUTTONS -->
+                            <div style="display: flex; align-items: center; gap: 2px; margin: 0 8px;">
+                                <button id="save-network-btn" style="
+                                    background: rgba(0, 255, 136, 0.1);
+                                    color: #00ff88;
+                                    border: 1px solid rgba(0, 255, 136, 0.3);
+                                    padding: 4px 6px;
+                                    border-radius: 3px;
+                                    font-size: 14px;
+                                    cursor: pointer;
+                                    transition: all 0.2s ease;
+                                    display: flex;
+                                    align-items: center;
+                                    justify-content: center;
+                                    min-width: 26px;
+                                    height: 26px;
+                                " onclick="showSaveNetworkPopup()" title="Save current network as custom node" 
+                                onmouseover="this.style.background='rgba(0, 255, 136, 0.2)'; this.style.borderColor='#00ff88';" 
+                                onmouseout="this.style.background='rgba(0, 255, 136, 0.1)'; this.style.borderColor='rgba(0, 255, 136, 0.3)';">💾</button>
+                                
+                                <button id="load-network-btn" style="
+                                    background: rgba(74, 158, 255, 0.1);
+                                    color: #4a9eff;
+                                    border: 1px solid rgba(74, 158, 255, 0.3);
+                                    padding: 4px 6px;
+                                    border-radius: 3px;
+                                    font-size: 14px;
+                                    cursor: pointer;
+                                    transition: all 0.2s ease;
+                                    display: flex;
+                                    align-items: center;
+                                    justify-content: center;
+                                    min-width: 26px;
+                                    height: 26px;
+                                " onclick="showLoadNetworkPopup()" title="Load custom network"
+                                onmouseover="this.style.background='rgba(74, 158, 255, 0.2)'; this.style.borderColor='#4a9eff';" 
+                                onmouseout="this.style.background='rgba(74, 158, 255, 0.1)'; this.style.borderColor='rgba(74, 158, 255, 0.3)';">📂</button>
+                            </div>
+                            
+                            <button onclick="addNewTab()" style="
+                                width: 60px;
+                                height: 100%;
+                                background: #00ff88;
+                                border: none;
+                                color: #000;
+                                cursor: pointer;
+                                font-size: 20px;
+                                font-weight: bold;
+                                border-left: 2px solid #fff;
+                            " title="Add New Nested Graph">＋</button>
+                        </div>
+                    `;
+                    
+                    document.body.insertBefore(emergencyTabBar, document.body.firstChild);
+                    document.body.style.paddingTop = '50px';
+                    
+                    // Add new tab function
+                    window.addNewTab = () => {
+                        const tabList = document.querySelector('.emergency-tab').parentElement;
+                        const newTab = document.createElement('div');
+                        newTab.className = 'emergency-tab';
+                        newTab.style.cssText = `
+                            background: #3a3a3a;
+                            border-right: 1px solid #666;
+                            padding: 0 16px;
+                            display: flex;
+                            align-items: center;
+                            cursor: pointer;
+                            position: relative;
+                        `;
+                        newTab.innerHTML = `
+                            <span ondblclick="this.contentEditable=true; this.focus();" onblur="this.contentEditable=false;">Nested Graph ${document.querySelectorAll('.emergency-tab').length + 1}</span>
+                            <button onclick="this.parentElement.remove()" style="
+                                margin-left: 12px;
+                                background: none;
+                                border: none;
+                                color: #888;
+                                cursor: pointer;
+                                font-size: 14px;
+                                padding: 2px;
+                            ">×</button>
+                        `;
+                        tabList.appendChild(newTab);
+                        
+                        // Make all tabs inactive except new one
+                        document.querySelectorAll('.emergency-tab').forEach(tab => {
+                            tab.style.background = '#3a3a3a';
+                        });
+                        newTab.style.background = '#4a4a4a';
+                    };
+                    
+
+                }
+            }
+
+            // DYNAMIC NODE LOADING SYSTEM
+            async loadAllNodeDefinitions() {
+                const categories = ['data', 'math', 'vector', 'logic', 'conversion', 'nested'];
+                const allNodes = [];
+                
+                this.updateLoadingStatus('Scanning node directories...', 0);
+                
+                for (let i = 0; i < categories.length; i++) {
+                    const category = categories[i];
+                    try {
+                        const nodes = await this.loadCategoryNodes(category);
+                        allNodes.push(...nodes);
+                        
+                        const progress = ((i + 1) / categories.length) * 100;
+                        this.updateLoadingStatus(`Loaded ${category} nodes (${nodes.length} found)`, progress);
+                        
+                    } catch (error) {
+                        // Failed to load nodes
+                    }
+                }
+                
+                this.nodeDefinitions = this.convertNodesToDisplayDefinitions(allNodes);
+                // Node count display removed
+                
+                this.updateLoadingStatus('Processing node definitions...', 100);
+            }
+
+            async loadCategoryNodes(category) {
+                const nodeFiles = {
+                    'data': ['ConstantNode', 'RandomNode', 'TimeNode', 'HashNode'],
+                    'math': ['AddNode', 'SubtractNode', 'MultiplyNode', 'DivideNode', 'PowerNode', 
+                            'SinNode', 'CosNode', 'AbsNode', 'MinNode', 'MaxNode', 'FloorNode', 
+                            'SqrtNode', 'ModNode'],
+                    'vector': ['JoinNode', 'SplitNode', 'LengthNode', 'NormalizeNode', 'DotNode'],
+                    'logic': ['GreaterNode', 'LessNode', 'EqualNode', 'AndNode', 'OrNode', 'NotNode', 'BranchNode'],
+                    'conversion': ['FloatToIntNode', 'IntToFloatNode', 'BoolToFloatNode'],
+                    'nested': ['InputNode', 'OutputNode']
+                };
+
+                const nodes = [];
+                const files = nodeFiles[category] || [];
+                
+                for (const fileName of files) {
+                    try {
+                        const response = await fetch(`nodes/${category}/${fileName}.js`);
+                        if (response.ok) {
+                            const fileContent = await response.text();
+                            const nodeInfo = this.extractNodeMetadata(fileContent, category);
+                            if (nodeInfo) {
+                                nodes.push(nodeInfo);
+                            }
+                        }
+                    } catch (error) {
+                        // Failed to load file
+                    }
+                }
+                
+                return nodes;
+            }
+
+            extractNodeMetadata(fileContent, category) {
+                try {
+                    const titleMatch = fileContent.match(/this\.title\s*=\s*['"`]([^'"`]+)['"`]/);
+                    const categoryMatch = fileContent.match(/this\.category\s*=\s*['"`]([^'"`]+)['"`]/);
+                    
+                    const inputMatches = [...fileContent.matchAll(/this\.addInput\s*\(\s*['"`]([^'"`]+)['"`]\s*,\s*['"`]([^'"`]+)['"`]\s*,\s*['"`]([^'"`]+)['"`]/g)];
+                    const outputMatches = [...fileContent.matchAll(/this\.addOutput\s*\(\s*['"`]([^'"`]+)['"`]\s*,\s*['"`]([^'"`]+)['"`]\s*,\s*['"`]([^'"`]+)['"`]/g)];
+                    
+                    const inputs = inputMatches.map(match => ({
+                        id: match[1],
+                        type: match[2],
+                        label: match[3]
+                    }));
+                    
+                    const outputs = outputMatches.map(match => ({
+                        id: match[1],
+                        type: match[2],
+                        label: match[3]
+                    }));
+                    
+                    const params = [];
+                    if (category === 'data' && titleMatch[1] === 'Constant') {
+                        params.push({ label: 'Value', value: 1.0 });
+                    } else if (category === 'data' && titleMatch[1] === 'Random') {
+                        params.push({ label: 'Seed', value: 42 });
+                    }
+                    
+                    return {
+                        title: titleMatch ? titleMatch[1] : 'Unknown',
+                        category: categoryMatch ? categoryMatch[1] : category,
+                        inputs,
+                        outputs,
+                        params
+                    };
+                    
+                } catch (error) {
+                    // Failed to extract metadata
+                    return null;
+                }
+            }
+
+            convertNodesToDisplayDefinitions(nodeInfos) {
+                return nodeInfos.map((nodeInfo, index) => {
+                    let position;
+                    
+                    // SPECIAL POSITIONING for nested graph nodes
+                    if (nodeInfo.title === 'Receive') {
+                        // Position Receive node on FAR LEFT
+                        position = { x: -1200, y: 0 };
+                    } else if (nodeInfo.title === 'Transmit') {
+                        // Position Transmit node on FAR RIGHT  
+                        position = { x: 1200, y: 0 };
+                    } else {
+                        // Use normal grid layout for other nodes
+                        position = this.layout.getGridPosition(index);
+                    }
+                    
+                    return {
+                        category: nodeInfo.category,
+                        title: nodeInfo.title,
+                        // icon removed - IconManager will handle PNG icons
+                        x: position.x,
+                        y: position.y,
+                        params: nodeInfo.params || [],
+                        inputs: nodeInfo.inputs || [],
+                        outputs: nodeInfo.outputs || []
+                    };
+                });
+            }
+
+            updateLoadingStatus(message, progress) {
+                document.getElementById('loading-status').textContent = message;
+                document.getElementById('loading-bar').style.width = progress + '%';
+                this.loadingProgress = progress;
+            }
+
+            // GRID CREATION
+            createGrid() {
+                this.grid = new PIXI.Graphics();
+                this.gridLayer.addChild(this.grid);
+                this.updateGrid();
+            }
+
+            updateGrid() {
+                this.grid.clear();
+                if (!this.showGrid) return;
+                
+                // Enhanced grid with zoom-responsive sizing
+                const baseGridSize = this.styles.grid.size;
+                const extent = this.styles.grid.extent;
+                
+                // Calculate zoom-responsive grid parameters
+                const zoomLevel = this.zoom;
+                let gridSize = baseGridSize;
+                let gridAlpha = this.styles.grid.alpha;
+                let gridColor = this.styles.grid.color;
+                
+                // Adaptive grid density based on zoom level
+                if (zoomLevel < 0.5) {
+                    // Very zoomed out - use larger grid, lower opacity
+                    gridSize = baseGridSize * 4;
+                    gridAlpha *= 0.3;
+                } else if (zoomLevel < 1.0) {
+                    // Zoomed out - use larger grid
+                    gridSize = baseGridSize * 2;
+                    gridAlpha *= 0.6;
+                } else if (zoomLevel > 3.0) {
+                    // Very zoomed in - add sub-grid
+                    const subGridSize = baseGridSize / 2;
+                    const subGridAlpha = gridAlpha * 0.3;
+                    
+                    // Draw sub-grid first
+                    this.grid.lineStyle(this.getScaleInvariantLineWidth(0.5), gridColor, subGridAlpha);
+                    for (let x = -extent; x <= extent; x += subGridSize) {
+                        this.grid.moveTo(x, -extent);
+                        this.grid.lineTo(x, extent);
+                    }
+                    for (let y = -extent; y <= extent; y += subGridSize) {
+                        this.grid.moveTo(-extent, y);
+                        this.grid.lineTo(extent, y);
+                    }
+                }
+                
+                // Main grid lines
+                this.grid.lineStyle(this.getScaleInvariantLineWidth(1), gridColor, gridAlpha);
+                
+                for (let x = -extent; x <= extent; x += gridSize) {
+                    this.grid.moveTo(x, -extent);
+                    this.grid.lineTo(x, extent);
+                }
+                
+                for (let y = -extent; y <= extent; y += gridSize) {
+                    this.grid.moveTo(-extent, y);
+                    this.grid.lineTo(extent, y);
+                }
+                
+                // Add center lines (more prominent)
+                const centerLineWidth = this.getScaleInvariantLineWidth(2);
+                const centerColor = 0x4a9eff;
+                const centerAlpha = gridAlpha * 1.5;
+                
+                this.grid.lineStyle(centerLineWidth, centerColor, centerAlpha);
+                
+                // Center vertical line
+                this.grid.moveTo(0, -extent);
+                this.grid.lineTo(0, extent);
+                
+                // Center horizontal line
+                this.grid.moveTo(-extent, 0);
+                this.grid.lineTo(extent, 0);
+                
+                // Add grid coordinates at intersections for high zoom
+                if (zoomLevel > 2.0) {
+                    this.addGridCoordinates(gridSize, extent);
+                }
+            }
+            
+            addGridCoordinates(gridSize, extent) {
+                // Clear any existing coordinate texts
+                this.gridLayer.children.forEach(child => {
+                    if (child instanceof PIXI.Text) {
+                        this.gridLayer.removeChild(child);
+                    }
+                });
+                
+                // Add coordinate labels at major grid intersections
+                const step = gridSize * 4; // Every 4th grid line
+                const textStyle = {
+                    fontFamily: 'Consolas, Monaco, monospace',
+                    fontSize: this.getScaleInvariantValue(8),
+                    fill: this.styles.grid.color,
+                    alpha: 0.5
+                };
+                
+                // Only show coordinates in visible area (optimization)
+                const visibleExtent = Math.min(extent, 2000);
+                
+                for (let x = -visibleExtent; x <= visibleExtent; x += step) {
+                    for (let y = -visibleExtent; y <= visibleExtent; y += step) {
+                        if (x === 0 && y === 0) {
+                            // Special origin marker
+                            const originText = new PIXI.Text('0,0', {
+                                ...textStyle,
+                                fontSize: this.getScaleInvariantValue(10),
+                                fill: 0x4a9eff,
+                                alpha: 0.8
+                            });
+                            originText.anchor.set(0.5);
+                            originText.x = gridSize * 0.5;
+                            originText.y = gridSize * 0.5;
+                            this.gridLayer.addChild(originText);
+                            continue;
+                        }
+                        
+                        const coordText = new PIXI.Text(`${x},${y}`, textStyle);
+                        coordText.anchor.set(0.5);
+                        coordText.x = x + gridSize * 0.3;
+                        coordText.y = y + gridSize * 0.3;
+                        coordText.alpha = 0.3;
+                        
+                        this.gridLayer.addChild(coordText);
+                    }
+                }
+            }
+
+            // NODE CREATION FUNCTIONS MOVED TO style/pixi-node-renderer.js
+
+            // ADD NODE METHOD for AutoSave system
+            addNode(nodeDefinition, x = 0, y = 0) {
+                const newNode = window.PixiNodeRenderer.createNode(this, nodeDefinition, this.nodes.length);
+                newNode.container.x = x;
+                newNode.container.y = y;
+                
+                this.nodes.push(newNode);
+                this.nodeLayer.addChild(newNode.container);
+                
+
+                return newNode;
+            }
+
+            // createNode() MOVED TO style/pixi-node-renderer.js
+
+            // calculateNodeHeight() MOVED TO style/pixi-node-renderer.js
+
+            // createParameters() MOVED TO style/pixi-node-renderer.js
+
+            // createPorts() MOVED TO style/pixi-node-renderer.js
+
+            // createPort() MOVED TO style/pixi-node-renderer.js
+
+            // INTERACTION SYSTEM
+            setupInteractions() {
+                this.app.stage.interactive = true;
+                this.app.stage.hitArea = new PIXI.Rectangle(0, 0, window.innerWidth, window.innerHeight);
+                this.app.stage.on('pointerdown', (e) => this.onStageMouseDown(e));
+                this.app.stage.on('pointermove', (e) => this.onStageMouseMove(e));
+                this.app.stage.on('pointerup', (e) => this.onStageMouseUp(e));
+                
+                this.app.canvas.addEventListener('wheel', (e) => {
+                    e.preventDefault();
+                    
+                    // ZOOM TO MOUSE POSITION
+                    const mousePos = { x: e.clientX, y: e.clientY };
+                    
+                    // Get world position BEFORE zoom
+                    const worldPosBefore = {
+                        x: (mousePos.x - this.pan.x) / this.zoom,
+                        y: (mousePos.y - this.pan.y) / this.zoom
+                    };
+                    
+                    // Apply zoom delta to TARGET (smooth)
+                    const delta = e.deltaY > 0 ? 0.9 : 1.1;
+                    const oldTargetZoom = this.targetZoom;
+                    this.targetZoom = Math.max(0.1, Math.min(5.0, this.targetZoom * delta));
+                    
+                    // Adjust target pan so SAME world point stays under mouse
+                    this.targetPan.x = mousePos.x - (worldPosBefore.x * this.targetZoom);
+                    this.targetPan.y = mousePos.y - (worldPosBefore.y * this.targetZoom);
+                    this.updateAllVisualsForZoom(); // Update scale-invariant elements
+                    this.updateStatus();
+                }, { passive: false });
+
+                // FIX PANNING BUG - Reset state when mouse leaves canvas/window
+                this.app.canvas.addEventListener('mouseleave', () => {
+                    this.resetInteractionState();
+                });
+
+                // Also reset on window mouse leave/blur
+                window.addEventListener('mouseleave', () => {
+                    this.resetInteractionState();
+                });
+
+                window.addEventListener('blur', () => {
+                    this.resetInteractionState();
+                });
+            }
+
+            // RESET all interaction states (fixes mouse leave bug)
+            resetInteractionState() {
+                // Stop all dragging/panning operations
+                this.isDragging = false;
+                this.isPanning = false;
+                this.isRectSelecting = false;
+                this.draggedNode = null;
+                this.dragStart = null;
+                this.multiDragOffset.clear();
+                
+                // Hide selection box
+                if (this.selectionBox) {
+                    this.selectionBox.visible = false;
+                }
+                
+                // Cancel any active connection
+                if (this.isConnecting) {
+                    this.cancelConnection();
+                }
+                
+
+            }
+
+            onNodeMouseDown(e, node) {
+                e.stopPropagation();
+                
+                // SHIFT/CTRL SELECTION
+                if (e.data.originalEvent.shiftKey || e.data.originalEvent.ctrlKey) {
+                    if (node.selected) {
+                        this.deselectNode(node);
+                    } else {
+                        this.selectNode(node);
+                    }
+                } else {
+                    // Single selection
+                    if (!node.selected) {
+                        this.clearSelection();
+                this.selectNode(node);
+                    }
+                }
+                
+                // MULTI-DRAG SETUP
+                if (this.selectedNodes.size > 1) {
+                    this.setupMultiDrag(e);
+                } else {
+                this.draggedNode = node;
+                this.dragOffset = {
+                    x: e.data.global.x - node.container.x * this.zoom - this.pan.x,
+                    y: e.data.global.y - node.container.y * this.zoom - this.pan.y
+                };
+                }
+                
+                this.isDragging = true;
+                this.dragStart = { x: e.data.global.x, y: e.data.global.y };
+            }
+
+            onStageMouseDown(e) {
+                if (e.data.originalEvent.button === 1 || e.data.originalEvent.button === 2) {
+                    // Middle/Right click - PAN
+                    this.isPanning = true;
+                    this.dragStart = { x: e.data.global.x, y: e.data.global.y };
+                } else {
+                    // Left click - RECTANGLE SELECTION
+                    if (!e.data.originalEvent.shiftKey && !e.data.originalEvent.ctrlKey) {
+                    this.clearSelection();
+                    }
+                    
+                    this.startRectangleSelection(e);
+                }
+            }
+
+            onStageMouseMove(e) {
+                // Store mouse position for connection preview
+                this.lastMousePos = e.data.global;
+                
+                if (this.isDragging && this.multiDragOffset.size > 0) {
+                    // MULTI-DRAG
+                    this.updateMultiDrag(e);
+                    this.updateAllConnections();
+                    
+                } else if (this.isDragging && this.draggedNode) {
+                    // SINGLE DRAG
+                    const worldX = (e.data.global.x - this.dragOffset.x - this.pan.x) / this.zoom;
+                    const worldY = (e.data.global.y - this.dragOffset.y - this.pan.y) / this.zoom;
+                    
+                    this.draggedNode.container.x = worldX;
+                    this.draggedNode.container.y = worldY;
+                    this.updateAllConnections();
+                    
+                } else if (this.isRectSelecting) {
+                    // RECTANGLE SELECTION
+                    this.updateRectangleSelection(e);
+                    
+                } else if (this.isPanning && this.dragStart) {
+                    // PANNING
+                    const deltaX = e.data.global.x - this.dragStart.x;
+                    const deltaY = e.data.global.y - this.dragStart.y;
+                    
+                    this.targetPan.x += deltaX;
+                    this.targetPan.y += deltaY;
+                    this.updateStatus();
+                    
+                    this.dragStart = { x: e.data.global.x, y: e.data.global.y };
+                } else if (this.isConnecting) {
+                    // CONNECTION PREVIEW - throttled updates
+                    if (!this.previewUpdatePending) {
+                        this.previewUpdatePending = true;
+                        requestAnimationFrame(() => {
+                            this.updateConnectionPreview();
+                            this.previewUpdatePending = false;
+                        });
+                    }
+                }
+            }
+
+            onStageMouseUp(e) {
+                if (this.isRectSelecting) {
+                    this.endRectangleSelection();
+                }
+                
+                // Handle wire release
+                if (this.isConnecting) {
+                    if (this.hoveredPort && this.hoveredPort.direction === 'input') {
+                        // Snap/connect even if pointerdown started elsewhere
+                        this.endConnection(this.hoveredPort.container, this.hoveredPort.def, 'input', this.hoveredPort.node);
+                    } else {
+                        // Mouse release over empty space - cancelling connection
+                        this.cancelConnection();
+                    }
+                }
+                
+                this.isDragging = false;
+                this.isPanning = false;
+                this.isRectSelecting = false;
+                this.draggedNode = null;
+                this.dragStart = null;
+                this.multiDragOffset.clear();
+            }
+
+            // REMOVED: onPortClick - now using direct event handlers
+
+            // CONNECTION SYSTEM
+            createConnectionPreview() {
+                this.connectionPreview = new PIXI.Graphics();
+                this.connectionPreview.visible = false;
+                this.connectionLayer.addChild(this.connectionPreview);
+                
+
+            }
+
+            startConnection(portContainer, portDef, direction, node) {
+                // Only start from output ports
+                if (direction !== 'output') return;
+                
+                this.isConnecting = true;
+                this.activeConnection = {
+                    fromPort: portContainer,
+                    fromDef: portDef,
+                    fromNode: node,
+                    fromDirection: direction
+                };
+                
+                this.connectionPreview.visible = true;
+                this.updateConnectionPreview();
+                // Disable node body interaction during drag
+                this.nodes.forEach(n => {
+                    n.container.interactive = false;
+                    // keep port interaction
+                    // n.container.interactiveChildren remains true;
+                });
+                
+
+            }
+
+            endConnection(portContainer, portDef, direction, node) {
+
+                
+                // Only connect to input ports
+                if (direction !== 'input') {
+                    // Can only connect to input ports
+                    this.cancelConnection();
+                    return;
+                }
+                
+                // Validate connection
+                if (!this.canConnect(this.activeConnection.fromDef, portDef)) {
+                    this.showConnectionError('Type mismatch: cannot connect ' + 
+                        this.activeConnection.fromDef.type + ' to ' + portDef.type);
+                    this.cancelConnection();
+                    return;
+                }
+                
+
+                
+                // Check for existing connections to this input
+                const existingConnection = this.connections.find(conn => 
+                    conn.toPort === portContainer);
+                
+                if (existingConnection) {
+                    // Removing existing connection
+                    this.removeConnection(existingConnection);
+                }
+                
+                // Create connection
+
+                const connection = this.createConnection(
+                    this.activeConnection.fromPort,
+                    this.activeConnection.fromDef,
+                    this.activeConnection.fromNode,
+                    portContainer,
+                    portDef,
+                    node
+                );
+                
+                this.connections.push(connection);
+                this.connectionLayer.addChild(connection.hitGraphics);
+                this.connectionLayer.addChild(connection.graphics);
+                
+
+                
+                // PIXI handles interaction automatically for Graphics objects
+                
+
+                
+                // Update status
+                this.updateStatus();
+                
+                this.cancelConnection();
+            }
+
+            createConnection(fromPort, fromDef, fromNode, toPort, toDef, toNode) {
+                const connection = {
+                    id: Date.now() + Math.random(), // Simple ID
+                    fromPort,
+                    fromDef,
+                    fromNode,
+                    toPort,
+                    toDef,
+                    toNode,
+                    graphics: new PIXI.Graphics(),
+                    hitGraphics: new PIXI.Graphics(),
+                    selected: false
+                };
+                
+                // Configure hitGraphics - KEEP RENDERABLE TRUE for hit detection
+                connection.hitGraphics.interactive = true;
+                connection.hitGraphics.cursor = 'pointer';
+                connection.hitGraphics.connectionRef = connection;
+                // Setup interaction and initial graphics
+                this.setupConnectionInteraction(connection);
+                this.updateConnectionGraphics(connection);
+                
+                return connection;
+            }
+
+            updateConnectionGraphics(connection) {
+                const graphics = connection.graphics;
+                
+                // Get positions
+                const fromPos = this.getPortWorldPosition(connection.fromPort, connection.fromNode);
+                const toPos = this.getPortWorldPosition(connection.toPort, connection.toNode);
+                
+                // CLEAR AND REDRAW USING WIRE RENDERER
+                graphics.clear();
+                // Visible line
+                this.drawConnectionCurve(graphics, fromPos, toPos, connection.fromDef.type, true, connection.selected, false);
+                
+                // Hit area using WIRE RENDERER
+                connection.hitGraphics.clear();
+                window.PixiWireRenderer.drawWireHitAreaScaled(
+                    connection.hitGraphics,
+                    fromPos,
+                    toPos,
+                    (width) => this.getScaleInvariantLineWidth(width)
+                );
+            }
+
+            // SIMPLE PREVIEW - SAME AS FINAL, NO COMPLEXITY
+            drawConnectionPreviewSimple(graphics, fromPos, toPos, type, isValid = true) {
+                // USE THE SAME FUCKING FUNCTION
+                this.drawConnectionCurve(graphics, fromPos, toPos, type, isValid, false, false);
+            }
+
+            // WIRE DRAWING USING WIRE RENDERER
+            drawConnectionCurve(graphics, fromPos, toPos, type, isValid = true, selected = false, hover = false) {
+                // USE WIRE RENDERER WITH SCALE SUPPORT
+                window.PixiWireRenderer.drawWireScaled(
+                    graphics, 
+                    fromPos, 
+                    toPos, 
+                    type, 
+                    { isValid, selected, hover },
+                    (width) => this.getScaleInvariantLineWidth(width)
+                );
+            }
+
+            getPortWorldPosition(portContainer, node) {
+                return {
+                    x: node.container.x + portContainer.x,
+                    y: node.container.y + portContainer.y
+                };
+            }
+
+            canConnect(fromDef, toDef) {
+                // ENHANCED TYPE VALIDATION
+                if (fromDef.type === toDef.type) return true;
+                
+                // Compatible type conversions
+                const compatibleTypes = {
+                    'float': ['int', 'vec2', 'vec3'],
+                    'int': ['float'],
+                    'vec2': ['float'],
+                    'vec3': ['float', 'vec2'],
+                    'bool': ['float', 'int']
+                };
+                
+                const allowedConversions = compatibleTypes[fromDef.type];
+                return allowedConversions && allowedConversions.includes(toDef.type);
+            }
+
+            updateConnectionPreview() {
+                if (!this.isConnecting || !this.activeConnection) return;
+                
+                const fromPos = this.getPortWorldPosition(
+                    this.activeConnection.fromPort, 
+                    this.activeConnection.fromNode
+                );
+                
+                let toPos;
+                let isValidConnection = true;
+                
+                if (this.hoveredPort && this.hoveredPort.direction === 'input') {
+                    toPos = this.getPortWorldPosition(this.hoveredPort.container, this.hoveredPort.node);
+                    // TYPE VALIDATION: Check if connection is valid
+                    isValidConnection = this.canConnect(this.activeConnection.fromDef, this.hoveredPort.def);
+                } else {
+                    // Follow mouse - use last known mouse position
+                    if (this.lastMousePos) {
+                        toPos = this.getWorldPosition(this.lastMousePos);
+                    } else {
+                        toPos = { x: fromPos.x + 100, y: fromPos.y }; // Better fallback
+                    }
+                }
+                
+                // FIXED: Clear and redraw in one operation to prevent flickering
+                this.connectionPreview.clear();
+                this.drawConnectionPreviewSimple(this.connectionPreview, fromPos, toPos, this.activeConnection.fromDef.type, isValidConnection);
+            }
+
+            cancelConnection() {
+
+                
+                this.isConnecting = false;
+                this.activeConnection = null;
+                this.previewUpdatePending = false; // Reset throttling
+                this.connectionPreview.visible = false;
+                this.connectionPreview.clear();
+                // Re-enable node body interaction
+                this.nodes.forEach(n => {
+                    n.container.interactive = true;
+                    // interactiveChildren unchanged
+                });
+            }
+
+            removeConnection(connection) {
+                const index = this.connections.indexOf(connection);
+                if (index !== -1) {
+
+                    
+                    // Remove from selection if selected
+                    this.selectedConnections.delete(connection);
+                    
+                    // Remove from arrays and layers
+                    this.connections.splice(index, 1);
+                    
+                    // REMOVE BOTH graphics AND hitGraphics
+                    this.connectionLayer.removeChild(connection.graphics);
+                    this.connectionLayer.removeChild(connection.hitGraphics);
+                    
+                    // DESTROY both to free memory
+                    connection.graphics.destroy();
+                    connection.hitGraphics.destroy();
+                    
+                    // Connection fully removed
+                }
+            }
+
+            showConnectionError(message) {
+
+                
+                // Use effects system for error display
+                this.effects.showError(message);
+            }
+
+            // THROTTLED connection updates to prevent flickering
+            updateAllConnections() {
+                if (this.connections.length === 0) return;
+                
+                // Throttle connection updates during drag
+                if (!this.connectionUpdatePending) {
+                    this.connectionUpdatePending = true;
+                    requestAnimationFrame(() => {
+                        this.connections.forEach(connection => {
+                            this.updateConnectionGraphics(connection);
+                        });
+                        this.connectionUpdatePending = false;
+                    });
+                }
+            }
+
+            // SELECTION SYSTEM - no animations
+            selectNode(node) {
+                node.selected = true;
+                this.selectedNodes.add(node);
+                
+                // Track last selected node
+                this.lastSelectedNode = node;
+                this.primarySelectedNode = node;
+                
+
+                window.PixiNodeRenderer.updateNodeVisual(this, node);
+                
+
+            }
+
+            // NODE ANIMATIONS REMOVED
+
+            deselectNode(node) {
+                node.selected = false;
+                this.selectedNodes.delete(node);
+                
+                // Update last selected if this was it
+                if (this.lastSelectedNode === node) {
+                    // Set to another selected node or null
+                    this.lastSelectedNode = this.selectedNodes.size > 0 ? 
+                        Array.from(this.selectedNodes)[this.selectedNodes.size - 1] : null;
+                }
+                
+                if (this.primarySelectedNode === node) {
+                    this.primarySelectedNode = this.lastSelectedNode;
+                }
+                
+                // Clear selected overlay directly
+                if (node.selectedOverlay) {
+                    node.selectedOverlay.clear();
+                }
+                
+                window.PixiNodeRenderer.updateNodeVisual(this, node);
+            }
+
+            clearSelection() {
+                // Clear node selection
+                this.selectedNodes.forEach(node => {
+                    node.selected = false;
+                    
+                    // Clear selected overlay directly
+                    if (node.selectedOverlay) {
+                        node.selectedOverlay.clear();
+                    }
+                    
+                    window.PixiNodeRenderer.updateNodeVisual(this, node);
+                });
+                this.selectedNodes.clear();
+                
+                // Clear last selected state
+                this.lastSelectedNode = null;
+                this.primarySelectedNode = null;
+                
+                // Clear connection selection
+                this.selectedConnections.forEach(connection => {
+                    connection.selected = false;
+                    this.updateConnectionGraphics(connection);
+                });
+                this.selectedConnections.clear();
+                
+
+            }
+
+            // RECTANGLE SELECTION SYSTEM
+            createSelectionBox() {
+                this.selectionBox = new PIXI.Graphics();
+                this.selectionBox.visible = false;
+                this.selectionLayer.addChild(this.selectionBox);
+            }
+
+            startRectangleSelection(e) {
+                this.isRectSelecting = true;
+                this.rectSelectStart = this.getWorldPosition(e.data.global);
+                this.rectSelectModifiers = {
+                    shiftKey: e.data.originalEvent.shiftKey,
+                    ctrlKey: e.data.originalEvent.ctrlKey
+                };
+                this.selectionBox.visible = true;
+                this.updateSelectionBox(this.rectSelectStart, this.rectSelectStart);
+            }
+
+            updateRectangleSelection(e) {
+                if (!this.isRectSelecting) return;
+                
+                const currentPos = this.getWorldPosition(e.data.global);
+                this.updateSelectionBox(this.rectSelectStart, currentPos);
+                
+                // Preview selection
+                this.previewRectangleSelection(this.rectSelectStart, currentPos);
+            }
+
+            endRectangleSelection() {
+                this.selectionBox.visible = false;
+                this.isRectSelecting = false;
+                this.rectSelectStart = null;
+                this.rectSelectModifiers = null;
+            }
+
+            updateSelectionBox(start, end) {
+                const minX = Math.min(start.x, end.x);
+                const minY = Math.min(start.y, end.y);
+                const width = Math.abs(end.x - start.x);
+                const height = Math.abs(end.y - start.y);
+                
+                const config = this.effects.getSelectionBoxConfig();
+                
+                this.selectionBox.clear();
+                
+                // TRANSPARENT BACKGROUND FILL
+                this.selectionBox.beginFill(config.lineColor, 0.08); // EXTREMELY transparent
+                this.selectionBox.drawRect(minX, minY, width, height);
+                this.selectionBox.endFill();
+                
+                // DOTTED OUTLINE with rectangular dots (1px thickness)
+                const dotSize = 4; // FIXED 4px rectangle dots
+                const spacing = 8; // FIXED spacing
+                
+                // TOP BORDER - rectangle dots
+                for (let x = minX; x < minX + width; x += spacing) {
+                    this.selectionBox.beginFill(config.lineColor, config.lineAlpha);
+                    this.selectionBox.drawRect(x - dotSize/2, minY - 1, dotSize, 1); // 1px thickness
+                    this.selectionBox.endFill();
+                }
+                
+                // BOTTOM BORDER - rectangle dots
+                for (let x = minX; x < minX + width; x += spacing) {
+                    this.selectionBox.beginFill(config.lineColor, config.lineAlpha);
+                    this.selectionBox.drawRect(x - dotSize/2, minY + height, dotSize, 1); // 1px thickness
+                    this.selectionBox.endFill();
+                }
+                
+                // LEFT BORDER - rectangle dots
+                for (let y = minY; y < minY + height; y += spacing) {
+                    this.selectionBox.beginFill(config.lineColor, config.lineAlpha);
+                    this.selectionBox.drawRect(minX - 1, y - dotSize/2, 1, dotSize); // 1px thickness
+                    this.selectionBox.endFill();
+                }
+                
+                // RIGHT BORDER - rectangle dots
+                for (let y = minY; y < minY + height; y += spacing) {
+                    this.selectionBox.beginFill(config.lineColor, config.lineAlpha);
+                    this.selectionBox.drawRect(minX + width, y - dotSize/2, 1, dotSize); // 1px thickness
+                    this.selectionBox.endFill();
+                }
+            }
+
+            previewRectangleSelection(start, end) {
+                const minX = Math.min(start.x, end.x);
+                const minY = Math.min(start.y, end.y);
+                const maxX = Math.max(start.x, end.x);
+                const maxY = Math.max(start.y, end.y);
+                
+                // COLLECT nodes that should be selected
+                const nodesToSelect = [];
+                this.nodes.forEach(node => {
+                    const nodeX = node.container.x;
+                    const nodeY = node.container.y;
+                    const halfWidth = node.width / 2;
+                    const halfHeight = node.height / 2;
+                    
+                    const intersects = !(nodeX + halfWidth < minX || 
+                                        nodeX - halfWidth > maxX || 
+                                        nodeY + halfHeight < minY || 
+                                        nodeY - halfHeight > maxY);
+                    
+                    if (intersects) {
+                        nodesToSelect.push(node);
+                    }
+                });
+                
+                // CLEAR current selection if not holding SHIFT/CTRL
+                if (!this.rectSelectModifiers || (!this.rectSelectModifiers.shiftKey && !this.rectSelectModifiers.ctrlKey)) {
+                    this.selectedNodes.forEach(node => {
+                        if (!nodesToSelect.includes(node)) {
+                            this.deselectNode(node);
+                        }
+                    });
+                }
+                
+                // SELECT intersecting nodes
+                nodesToSelect.forEach(node => {
+                    if (!node.selected) {
+                        this.selectNode(node);
+                    }
+                });
+                
+                // Select connections that intersect selection box
+                this.connections.forEach(connection => {
+                    if (!connection.selected) {
+                        const fromPos = this.getPortWorldPosition(connection.fromPort, connection.fromNode);
+                        const toPos = this.getPortWorldPosition(connection.toPort, connection.toNode);
+                        
+                        // Simple line-rectangle intersection check
+                        if (this.lineIntersectsRect(fromPos, toPos, minX, minY, maxX, maxY)) {
+                            this.selectConnection(connection);
+                        }
+                    }
+                });
+            }
+
+            // Simple line-rectangle intersection
+            lineIntersectsRect(lineStart, lineEnd, rectMinX, rectMinY, rectMaxX, rectMaxY) {
+                // Check if either endpoint is inside rectangle
+                if ((lineStart.x >= rectMinX && lineStart.x <= rectMaxX && lineStart.y >= rectMinY && lineStart.y <= rectMaxY) ||
+                    (lineEnd.x >= rectMinX && lineEnd.x <= rectMaxX && lineEnd.y >= rectMinY && lineEnd.y <= rectMaxY)) {
+                    return true;
+                }
+                
+                // Simple check if line crosses rectangle bounds
+                const centerX = (rectMinX + rectMaxX) / 2;
+                const centerY = (rectMinY + rectMaxY) / 2;
+                const halfWidth = (rectMaxX - rectMinX) / 2;
+                const halfHeight = (rectMaxY - rectMinY) / 2;
+                
+                return Math.abs(((lineStart.x + lineEnd.x) / 2) - centerX) < halfWidth + Math.abs(lineEnd.x - lineStart.x) / 2 &&
+                       Math.abs(((lineStart.y + lineEnd.y) / 2) - centerY) < halfHeight + Math.abs(lineEnd.y - lineStart.y) / 2;
+            }
+
+            // MULTI-DRAG SYSTEM
+            setupMultiDrag(e) {
+                this.multiDragOffset.clear();
+                
+                this.selectedNodes.forEach(node => {
+                    this.multiDragOffset.set(node, {
+                        x: e.data.global.x - node.container.x * this.zoom - this.pan.x,
+                        y: e.data.global.y - node.container.y * this.zoom - this.pan.y
+                    });
+                });
+            }
+
+            updateMultiDrag(e) {
+                this.selectedNodes.forEach(node => {
+                    const offset = this.multiDragOffset.get(node);
+                    if (offset) {
+                        const worldX = (e.data.global.x - offset.x - this.pan.x) / this.zoom;
+                        const worldY = (e.data.global.y - offset.y - this.pan.y) / this.zoom;
+                        
+                        node.container.x = worldX;
+                        node.container.y = worldY;
+                    }
+                });
+            }
+
+            // CONNECTION INTERACTION SYSTEM
+            setupConnectionInteraction(connection) {
+                const graphics = connection.hitGraphics;
+                
+                // BASIC INTERACTION
+                graphics.interactive = true;
+                graphics.cursor = 'pointer';
+                graphics.connectionRef = connection;
+                
+                // CLICK TO SELECT - KEEP IT SIMPLE
+                graphics.on('pointerdown', (e) => {
+                    e.stopPropagation();
+                    if (!e.data.originalEvent.shiftKey) {
+                        this.clearSelection();
+                    }
+                    this.selectConnection(connection);
+                });
+            }
+
+            createConnectionHitArea(connection) {
+                // USE PIXI's BUILT-IN hit detection for the curve
+                // Modern PIXI handles bezier curve interaction automatically
+                // No custom hit areas needed - keeps it simple and stable
+            }
+
+            selectConnection(connection) {
+                connection.selected = true;
+                this.selectedConnections.add(connection);
+                this.updateConnectionGraphics(connection);
+
+            }
+
+            // UTILITY METHODS
+            getWorldPosition(screenPos) {
+                return {
+                    x: (screenPos.x - this.pan.x) / this.zoom,
+                    y: (screenPos.y - this.pan.y) / this.zoom
+                };
+            }
+
+            // KEYBOARD SHORTCUTS
+            selectAllNodes() {
+                this.clearSelection();
+                this.nodes.forEach(node => this.selectNode(node));
+
+            }
+
+            copySelectedNodes() {
+                this.clipboard = Array.from(this.selectedNodes).map(node => ({
+                    definition: { ...node.definition },
+                    x: node.container.x,
+                    y: node.container.y
+                }));
+
+            }
+
+            cutSelectedNodes() {
+                this.copySelectedNodes();
+                this.deleteSelectedNodes();
+
+            }
+
+            pasteNodes() {
+                if (this.clipboard.length === 0) {
+
+                    return;
+                }
+
+                this.clearSelection();
+                const offset = 50; // Paste offset
+
+                this.clipboard.forEach(clipNode => {
+                    const newDef = {
+                        ...clipNode.definition,
+                        x: clipNode.x + offset,
+                        y: clipNode.y + offset
+                    };
+
+                    const newNode = window.PixiNodeRenderer.createNode(this, newDef, this.nodes.length);
+                    this.nodes.push(newNode);
+                    this.nodeLayer.addChild(newNode.container);
+                    this.selectNode(newNode);
+                });
+
+                // Mark tab as having unsaved changes
+                this.markCurrentTabUnsaved();
+                
+
+                this.updateStatus();
+            }
+
+            duplicateSelectedNodes() {
+                if (this.selectedNodes.size === 0) return;
+
+                this.copySelectedNodes();
+                this.pasteNodes();
+
+            }
+
+            deleteSelectedNodes() {
+                const nodeCount = this.selectedNodes.size;
+                const connectionCount = this.selectedConnections.size;
+                
+                if (nodeCount === 0 && connectionCount === 0) return;
+                
+                // Mark tab as having unsaved changes
+                this.markCurrentTabUnsaved();
+                
+                // Remove selected connections
+                this.selectedConnections.forEach(conn => this.removeConnection(conn));
+                this.selectedConnections.clear();
+                
+                if (nodeCount > 0) {
+                    // Remove connections to/from selected nodes
+                    const nodeConnections = this.connections.filter(conn => 
+                        this.selectedNodes.has(conn.fromNode) || this.selectedNodes.has(conn.toNode));
+                    
+                    nodeConnections.forEach(conn => this.removeConnection(conn));
+                    
+                    // Remove nodes from layer
+                    this.selectedNodes.forEach(node => {
+                        this.nodeLayer.removeChild(node.container);
+                        // Animation removed
+                    });
+
+                    // Remove from nodes array
+                    this.nodes = this.nodes.filter(node => !this.selectedNodes.has(node));
+                    this.selectedNodes.clear();
+                    
+
+                } else {
+
+                }
+                
+                this.updateStatus();
+            }
+
+            // updateNodeVisual() MOVED TO style/pixi-node-renderer.js
+
+            // UI SYSTEM
+            setupUI() {
+                // Theme selector removed
+
+                // INITIALIZE MODULAR CONTEXT MENU SYSTEM
+                if (window.PixiContextMenu) {
+                    window.PixiContextMenu.init(this);
+                    console.log('✅ Context menu system initialized via module');
+                } else {
+                    console.warn('⚠️ PixiContextMenu module not found');
+                }
+                
+                // COLOR PALETTE AUTO-REFRESH SYSTEM
+                this.setupColorPaletteListener();
+
+                window.addEventListener('keydown', (e) => {
+                    // Prevent shortcuts when typing in inputs
+                    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+                    
+                    switch(e.key.toLowerCase()) {
+                        case 'g':
+                        this.showGrid = !this.showGrid;
+                        this.updateGrid();
+
+                            break;
+                            
+                        case 'a':
+                            if (e.ctrlKey || e.metaKey) {
+                                e.preventDefault();
+                                this.selectAllNodes();
+                            }
+                            break;
+                            
+                        case 'c':
+                            if (e.ctrlKey || e.metaKey) {
+                                e.preventDefault();
+                                this.copySelectedNodes();
+                            }
+                            break;
+                            
+                        case 'v':
+                            if (e.ctrlKey || e.metaKey) {
+                                e.preventDefault();
+                                this.pasteNodes();
+                            }
+                            break;
+                            
+                        case 'x':
+                            if (e.ctrlKey || e.metaKey) {
+                                e.preventDefault();
+                                this.cutSelectedNodes();
+                            }
+                            break;
+                            
+                        case 'delete':
+                        case 'backspace':
+                            e.preventDefault();
+                            if (this.isConnecting) {
+                                this.cancelConnection();
+                            } else {
+                                this.deleteSelectedNodes();
+                            }
+                            break;
+                            
+                        case 'escape':
+                            this.clearSelection();
+                            break;
+                            
+                        case 'd':
+                            if (e.ctrlKey || e.metaKey) {
+                                e.preventDefault();
+                                this.duplicateSelectedNodes();
+                            }
+                            break;
+                            
+                        case 'i':
+                            // Info about last selected node
+                            if (this.hasLastSelected()) {
+                                const info = this.getLastSelectedNodeInfo();
+
+                                this.showNodeInfo(info);
+                            } else {
+
+                            }
+                            break;
+                            
+                        case 'f':
+                            // Focus on last selected node
+                            if (this.hasLastSelected()) {
+                                this.focusOnNode(this.getLastSelectedNode());
+                            }
+                            break;
+                            
+                        case 'g':
+                            // Toggle grid visibility
+                            this.showGrid = !this.showGrid;
+                            this.updateGrid();
+
+                            break;
+                            
+                        case 't':
+                            // Open text style editor
+                            e.preventDefault();
+                            window.open('node-text-editor.html', '_blank', 'width=1200,height=800');
+
+                            break;
+                    }
+                });
+
+                // Handle window resize for HIGH-DPI displays (PIXI v8)
+                window.addEventListener('resize', () => {
+                    const newResolution = (window.devicePixelRatio || 1) * 1.75; // 2x DPI boost
+                    this.app.renderer.resize(window.innerWidth, window.innerHeight);
+                    this.app.canvas.style.width = window.innerWidth + 'px';
+                    this.app.canvas.style.height = window.innerHeight + 'px';
+                    this.app.stage.hitArea = new PIXI.Rectangle(0, 0, window.innerWidth, window.innerHeight);
+                    
+                    // Update tiling background size for new window dimensions
+                    if (this.backgroundTiling) {
+                        const bgSize = Math.max(window.innerWidth, window.innerHeight) * 3;
+                        this.backgroundTiling.width = bgSize;
+                        this.backgroundTiling.height = bgSize;
+                    }
+                    
+                    // Recreate all text elements with new resolution if needed
+                    if (this.resolution !== newResolution) {
+
+                        this.resolution = newResolution;
+                        this.recreateNodes(); // Don't await in resize handler
+                    }
+                });
+            }
+
+            async recreateNodes() {
+                // Clear existing nodes
+                this.nodeLayer.removeChildren();
+                this.nodes = [];
+                
+                // No sprite sheet needed - using individual PNG files
+                
+                // NO DEFAULT NODES - Keep empty canvas even after resolution change
+                // window.PixiNodeRenderer.createNodesFromDefinitions(this);
+            }
+
+            // LEGACY: updateTheme moved to ThemeSystem
+            updateTheme() {
+                if (this.themeSystem) {
+                    this.themeSystem.applyTheme();
+                }
+            }
+
+            // SMOOTH ANIMATION LOOP - interpolates zoom and pan
+            startSmoothAnimation() {
+                const animate = () => {
+                    // Interpolate zoom
+                    const zoomDiff = this.targetZoom - this.zoom;
+                    if (Math.abs(zoomDiff) > 0.001) {
+                        this.zoom += zoomDiff * this.smoothingFactor;
+                    }
+                    
+                    // Interpolate pan
+                    const panDiffX = this.targetPan.x - this.pan.x;
+                    const panDiffY = this.targetPan.y - this.pan.y;
+                    if (Math.abs(panDiffX) > 0.1 || Math.abs(panDiffY) > 0.1) {
+                        this.pan.x += panDiffX * this.smoothingFactor;
+                        this.pan.y += panDiffY * this.smoothingFactor;
+                    }
+                    
+                    // Update viewport with smoothed values
+                    this.viewport.scale.set(this.zoom);
+                    this.viewport.x = this.pan.x;
+                    this.viewport.y = this.pan.y;
+                    
+                    requestAnimationFrame(animate);
+                };
+                animate();
+            }
+
+            updateViewport() {
+                // Direct update for immediate response (fallback)
+                this.viewport.scale.set(this.zoom);
+                this.viewport.x = this.pan.x;
+                this.viewport.y = this.pan.y;
+            }
+
+            // SCALE-INVARIANT LINE WIDTH - keeps borders same thickness at any zoom
+            getScaleInvariantLineWidth(baseWidth) {
+                return Math.max(0.5, baseWidth / this.zoom);
+            }
+
+            // Update all visuals when zoom changes to refresh scale-invariant elements
+            updateAllVisualsForZoom() {
+                // Update all node borders
+                this.nodes.forEach(node => {
+                    window.PixiNodeRenderer.updateNodeVisual(this, node);
+                });
+                
+                // Update grid
+                this.updateGrid();
+                
+                // Update all connections
+                this.connections.forEach(connection => {
+                    this.updateConnectionGraphics(connection);
+                });
+                
+                // Update selection box if active
+                if (this.selectionBox && this.isRectSelecting) {
+                    this.updateRectangleSelection({ data: { global: this.lastMousePos || { x: 0, y: 0 } } });
+                }
+            }
+
+            // COLOR PALETTE AUTO-REFRESH LISTENER
+            setupColorPaletteListener() {
+
+                
+                // Method 1: BroadcastChannel for real-time communication
+                if (typeof BroadcastChannel !== 'undefined') {
+                    const channel = new BroadcastChannel('plexus-colors');
+                    channel.addEventListener('message', (event) => {
+                        if (event.data.type === 'COLORS_UPDATED') {
+
+                            this.handleColorUpdate();
+                        }
+                    });
+                }
+                
+                // Method 2: localStorage change detection
+                let lastColorsTimestamp = localStorage.getItem('plexusColorsTimestamp');
+                
+                window.addEventListener('storage', (e) => {
+                    if (e.key === 'plexusColors' || e.key === 'plexusColorsTimestamp') {
+
+                        this.handleColorUpdate();
+                    }
+                });
+                
+                // Method 3: Polling fallback (every 2 seconds)
+                setInterval(() => {
+                    const currentTimestamp = localStorage.getItem('plexusColorsTimestamp');
+                    if (currentTimestamp && currentTimestamp !== lastColorsTimestamp) {
+
+                        lastColorsTimestamp = currentTimestamp;
+                        this.handleColorUpdate();
+                    }
+                }, 2000);
+            }
+            
+            // HANDLE COLOR UPDATE - reload styles and refresh nodes
+            handleColorUpdate() {
+                try {
+
+                    
+                    // Reload all style systems
+                    if (window.PixiNodeStyles && window.PixiNodeStyles.loadColors) {
+                        window.PixiNodeStyles.loadColors();
+                    }
+                    
+                    if (window.PixiUIStyles && window.PixiUIStyles.loadColors) {
+                        window.PixiUIStyles.loadColors();
+                    }
+                    
+                    if (window.PixiEffects && window.PixiEffects.loadColors) {
+                        window.PixiEffects.loadColors();
+                    }
+                    
+                    // Refresh all nodes visual appearance
+                    if (this.nodes && Array.isArray(this.nodes)) {
+                        this.nodes.forEach(node => {
+                            if (window.PixiNodeRenderer && window.PixiNodeRenderer.updateNodeVisual) {
+                                window.PixiNodeRenderer.updateNodeVisual(this, node);
+                            }
+                        });
+                    }
+                    
+                    // Update theme via theme system
+                    if (this.themeSystem) {
+                        this.themeSystem.applyTheme();
+                    }
+                    
+
+                } catch (e) {
+                    // Error handling color update
+                }
+            }
+
+            updateStatus() {
+                const centerOffsetX = this.pan.x - window.innerWidth / 2;
+                const centerOffsetY = this.pan.y - window.innerHeight / 2;
+                
+                let selectedInfo = '';
+                if (this.selectedNodes.size > 0 || this.selectedConnections.size > 0) {
+                    selectedInfo = ` • Selected: ${this.selectedNodes.size} nodes, ${this.selectedConnections.size} wires`;
+                    
+                    // Add last selected node info
+                    if (this.lastSelectedNode) {
+                        const nodeName = this.lastSelectedNode.definition?.title || 'Unknown';
+                        selectedInfo += ` • Last: ${nodeName}`;
+                    }
+                }
+                    
+                document.getElementById('status-text').textContent = 
+                    `Ready • Zoom: ${this.zoom.toFixed(2)}x • Pan: (${centerOffsetX.toFixed(0)}, ${centerOffsetY.toFixed(0)}) • ${this.nodes.length} nodes • ${this.connections.length} connections${selectedInfo}`;
+            }
+
+            // CONTEXT MENU METHODS - Now handled by PixiContextMenu module
+            async toggleContextMenu(cursorX, cursorY) {
+                if (window.PixiContextMenu) {
+                    await window.PixiContextMenu.toggleContextMenu(cursorX, cursorY);
+                }
+            }
+
+            async showContextMenu(cursorX, cursorY) {
+                if (window.PixiContextMenu) {
+                    await window.PixiContextMenu.showContextMenu(cursorX, cursorY);
+                }
+            }
+
+            hideContextMenu() {
+                if (window.PixiContextMenu) {
+                    window.PixiContextMenu.hideContextMenu();
+                }
+            }
+
+            // Context menu methods now handled by PixiContextMenu module
+            
+            async filterNodeList(searchTerm) {
+                if (window.PixiContextMenu) {
+                    await window.PixiContextMenu.filterNodeList(searchTerm);
+                }
+            }
+
+            selectNodeFromMenu(nodeDefinition) {
+                if (window.PixiContextMenu) {
+                    window.PixiContextMenu.selectNodeFromMenu(nodeDefinition);
+                }
+            }
+
+            // TILING BACKGROUND using bg.png
+            async createTilingBackground() {
+                try {
+                    // Load the background texture
+                    const texture = await PIXI.Assets.load('imgs/bg.png');
+                    
+                    // Create tiling sprite that covers entire screen and beyond
+                    const bgSize = Math.max(window.innerWidth, window.innerHeight)*8; // 3x screen size
+                    this.backgroundTiling = new PIXI.TilingSprite(texture, bgSize, bgSize);
+                    
+                    // Center the tiling background
+                    this.backgroundTiling.anchor.set(0.5);
+                    this.backgroundTiling.x = 0;
+                    this.backgroundTiling.y = 0;
+                    
+                    // Add to viewport so it moves with zoom/pan (check if viewport exists)
+                    if (this.viewport) {
+                        this.viewport.addChildAt(this.backgroundTiling, 0);
+                    } else {
+                        // Viewport not ready, skipping background
+                        return;
+                    }
+                    
+
+                    
+                } catch (error) {
+                    // Failed to load bg.png, using solid background
+                    // Fallback to solid color
+                    this.app.renderer.background.color = this.styles.colors.background;
+                }
+            }
+
+            // ENHANCED ANIMATIONS using PIXI Ticker
+            startAnimationSystem() {
+                this.animationQueue = new Map();
+                
+                this.app.ticker.add((delta) => {
+                    // Process animation queue
+                    for (const [target, animation] of this.animationQueue) {
+                        this.updateAnimation(target, animation, delta);
+                    }
+                });
+            }
+
+            updateAnimation(target, animation, delta) {
+                const progress = Math.min(1, animation.elapsed / animation.duration);
+                const eased = this.easeInOut(progress);
+                
+                // Interpolate values
+                for (const [prop, values] of Object.entries(animation.properties)) {
+                    const current = values.from + (values.to - values.from) * eased;
+                    if (prop.includes('.')) {
+                        const [obj, key] = prop.split('.');
+                        target[obj][key] = current;
+                    } else {
+                        target[prop] = current;
+                    }
+                }
+                
+                animation.elapsed += delta * 16.67; // Convert to ms
+                
+                if (progress >= 1) {
+                    this.animationQueue.delete(target);
+                    if (animation.onComplete) animation.onComplete();
+                }
+            }
+
+            easeInOut(t) {
+                return t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t;
+            }
+
+            animateTo(target, properties, duration = 200, onComplete = null) {
+                this.animationQueue.set(target, {
+                    properties,
+                    duration,
+                    elapsed: 0,
+                    onComplete
+                });
+            }
+            
+            // LAST SELECTED NODE UTILITIES
+            getLastSelectedNode() {
+                return this.lastSelectedNode;
+            }
+            
+            getPrimarySelectedNode() {
+                return this.primarySelectedNode;
+            }
+            
+            hasLastSelected() {
+                return this.lastSelectedNode !== null;
+            }
+            
+            getLastSelectedNodeInfo() {
+                if (!this.lastSelectedNode) return null;
+                return {
+                    node: this.lastSelectedNode,
+                    title: this.lastSelectedNode.definition?.title || 'Unknown',
+                    category: this.lastSelectedNode.definition?.category || 'Unknown',
+                    position: {
+                        x: this.lastSelectedNode.container?.x || 0,
+                        y: this.lastSelectedNode.container?.y || 0
+                    }
+                };
+            }
+        }
+
+        // Initialize the system (v8 async)
+        (async () => {
+            try {
+                const nodeSystem = new StandalonePixiNodeSystem();
+                await nodeSystem.initialize();
+                
+                // Make node system globally available for save/load
+                window.currentNodeSystem = nodeSystem;
+            } catch (error) {
+                // Failed to create node system
+                document.getElementById('loading-status').textContent = 'Initialization error: ' + error.message;
+            }
+        })();
+
+        // Make clearAllCaches available globally for the button
+        window.clearAllCaches = function() {
+            console.log('🗑️ Clearing all caches...');
+            
+            // Clear localStorage
+            try {
+                localStorage.clear();
+                console.log('✅ localStorage cleared');
+            } catch (e) {
+                console.warn('⚠️ Failed to clear localStorage:', e);
+            }
+            
+            // Clear sessionStorage
+            try {
+                sessionStorage.clear();
+                console.log('✅ sessionStorage cleared');
+            } catch (e) {
+                console.warn('⚠️ Failed to clear sessionStorage:', e);
+            }
+            
+            // Clear PIXI cache
+            try {
+                if (window.PIXI && PIXI.Assets) {
+                    PIXI.Assets.cache.reset();
+                    console.log('✅ PIXI Assets cache cleared');
+                }
+            } catch (e) {
+                console.warn('⚠️ Failed to clear PIXI cache:', e);
+            }
+            
+            // Reload the page
+            console.log('🔄 Reloading page...');
+            location.reload(true); // Force reload from server
+        };
+
+        // NETWORK SAVE/LOAD SYSTEM
+        window.showSaveNetworkPopup = function() {
+            document.getElementById('save-network-popup').style.display = 'block';
+            document.getElementById('network-name-input').focus();
+            
+            // Setup custom node checkbox listener
+            const checkbox = document.getElementById('save-as-custom-node');
+            const config = document.getElementById('custom-node-config');
+            
+            checkbox.onchange = function() {
+                config.style.display = this.checked ? 'block' : 'none';
+                if (this.checked) {
+                    // Auto-detect inputs/outputs from current nodes
+                    autoDetectNodePorts();
+                }
+            };
+        };
+
+        function autoDetectNodePorts() {
+            if (!window.currentNodeSystem) return { inputs: [], outputs: [] };
+            
+            const nodeSystem = window.currentNodeSystem;
+            const externalInputs = new Map(); // port -> {nodeTitle, nodeId}
+            const externalOutputs = new Map(); // port -> {nodeTitle, nodeId}
+            
+            // Find EXTERNAL interface points
+            nodeSystem.nodes.forEach(node => {
+                const nodeTitle = node.definition?.title || 'Unknown';
+                
+                // Check inputs - unconnected inputs become external inputs
+                if (node.ports?.inputs) {
+                    node.ports.inputs.forEach(port => {
+                        const isConnectedInternally = nodeSystem.connections.some(conn => 
+                            conn.toNode === node && conn.toDef?.label === port.def?.label);
+                        
+                        if (!isConnectedInternally && port.def?.label) {
+                            const portName = `${nodeTitle}_${port.def.label}`;
+                            externalInputs.set(portName, {
+                                nodeTitle: nodeTitle,
+                                nodeId: node.id,
+                                portLabel: port.def.label,
+                                portType: port.def.type || 'any'
+                            });
+                        }
+                    });
+                }
+                
+                // Check outputs - unconnected outputs become external outputs
+                if (node.ports?.outputs) {
+                    node.ports.outputs.forEach(port => {
+                        const isConnectedInternally = nodeSystem.connections.some(conn => 
+                            conn.fromNode === node && conn.fromDef?.label === port.def?.label);
+                        
+                        if (!isConnectedInternally && port.def?.label) {
+                            const portName = `${nodeTitle}_${port.def.label}`;
+                            externalOutputs.set(portName, {
+                                nodeTitle: nodeTitle,
+                                nodeId: node.id,
+                                portLabel: port.def.label,
+                                portType: port.def.type || 'any'
+                            });
+                        }
+                    });
+                }
+            });
+            
+            const inputArray = Array.from(externalInputs.keys());
+            const outputArray = Array.from(externalOutputs.keys());
+            
+            // Update UI
+            const inputsDiv = document.getElementById('detected-inputs');
+            const outputsDiv = document.getElementById('detected-outputs');
+            
+            if (inputArray.length > 0) {
+                inputsDiv.innerHTML = inputArray.map(input => `<span style="background: rgba(74, 158, 255, 0.2); padding: 2px 6px; border-radius: 3px; margin: 2px; display: inline-block;">${input}</span>`).join('');
+                inputsDiv.style.fontStyle = 'normal';
+            } else {
+                inputsDiv.innerHTML = '<span style="color: #888;">No external inputs detected</span>';
+                inputsDiv.style.fontStyle = 'italic';
+            }
+            
+            if (outputArray.length > 0) {
+                outputsDiv.innerHTML = outputArray.map(output => `<span style="background: rgba(0, 255, 136, 0.2); padding: 2px 6px; border-radius: 3px; margin: 2px; display: inline-block;">${output}</span>`).join('');
+                outputsDiv.style.fontStyle = 'normal';
+            } else {
+                outputsDiv.innerHTML = '<span style="color: #888;">No external outputs detected</span>';
+                outputsDiv.style.fontStyle = 'italic';
+            }
+            
+            return {
+                inputs: inputArray,
+                outputs: outputArray,
+                inputDetails: externalInputs,
+                outputDetails: externalOutputs
+            };
+        }
+
+        window.hideSaveNetworkPopup = function() {
+            document.getElementById('save-network-popup').style.display = 'none';
+        };
+
+        window.showLoadNetworkPopup = function() {
+            populateCustomNetworksList();
+            document.getElementById('load-network-popup').style.display = 'block';
+        };
+
+        window.hideLoadNetworkPopup = function() {
+            document.getElementById('load-network-popup').style.display = 'none';
+        };
+
+        window.saveCurrentNetwork = function() {
+            const name = document.getElementById('network-name-input').value.trim();
+            const description = document.getElementById('network-description-input').value.trim();
+            const category = document.getElementById('network-category-input').value;
+            const isCustomNode = document.getElementById('save-as-custom-node').checked;
+
+            if (!name) {
+                alert('Please enter a network name!');
+                return;
+            }
+
+            // Get current node system (assuming it's the global variable)
+            if (!window.currentNodeSystem) {
+                alert('No node system found!');
+                return;
+            }
+
+            const nodeSystem = window.currentNodeSystem;
+
+            // Save current graph to tab before serializing
+            if (nodeSystem.tabSystem && nodeSystem.tabSystem.getActiveTab()) {
+                nodeSystem.saveCurrentGraphToTab();
+            }
+
+            // Handle custom node creation
+            if (isCustomNode) {
+                createCustomNodeDefinition(name, description, category, nodeSystem);
+                return;
+            }
+
+            // Serialize current network
+            const networkData = {
+                id: Date.now().toString(),
+                name: name,
+                description: description,
+                category: category,
+                created: new Date().toISOString(),
+                version: '1.0',
+                nodes: nodeSystem.nodes.map(node => ({
+                    id: node.id,
+                    definition: {
+                        title: node.definition.title,
+                        category: node.definition.category,
+                        params: node.definition.params?.map(param => ({
+                            ...param,
+                            value: param.value
+                        }))
+                    },
+                    position: {
+                        x: node.container.x,
+                        y: node.container.y
+                    }
+                })),
+                connections: nodeSystem.connections?.map(conn => ({
+                    id: conn.id,
+                    fromNodeId: conn.fromNode?.id,
+                    fromPort: conn.fromDef?.label,
+                    toNodeId: conn.toNode?.id,
+                    toPort: conn.toDef?.label
+                })) || []
+            };
+
+            // Save to localStorage
+            const customNetworks = getCustomNetworks();
+            customNetworks[networkData.id] = networkData;
+            localStorage.setItem('plexus_custom_networks', JSON.stringify(customNetworks));
+
+            // Also save as downloadable JSON
+            const dataStr = JSON.stringify(networkData, null, 2);
+            const dataBlob = new Blob([dataStr], {type: 'application/json'});
+            const url = URL.createObjectURL(dataBlob);
+            
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `${name.replace(/[^a-zA-Z0-9]/g, '_')}.json`;
+            link.click();
+            
+            URL.revokeObjectURL(url);
+
+            // Rename current tab to the network name
+            if (nodeSystem.tabSystem && nodeSystem.tabSystem.getActiveTab()) {
+                const activeTab = nodeSystem.tabSystem.getActiveTab();
+                nodeSystem.tabSystem.renameTab(activeTab.id, name);
+                
+                // Update UI if PixiTabRenderer is available
+                if (window.PixiTabRenderer) {
+                    window.PixiTabRenderer.renderTabs();
+                }
+            } else {
+                // Fallback for emergency tab system
+                const currentTab = document.querySelector('.emergency-tab[style*="background: #4a4a4a"], .emergency-tab[style*="background:#4a4a4a"]');
+                if (currentTab) {
+                    const tabNameSpan = currentTab.querySelector('span');
+                    if (tabNameSpan) {
+                        tabNameSpan.textContent = name;
+                    }
+                }
+            }
+
+            console.log(`💾 Saved network: ${name}`);
+            alert(`Network "${name}" saved successfully!`);
+            hideSaveNetworkPopup();
+        };
+
+        window.loadCustomNetwork = function(networkId) {
+            const customNetworks = getCustomNetworks();
+            const networkData = customNetworks[networkId];
+
+            if (!networkData) {
+                alert('Network not found!');
+                return;
+            }
+
+            if (!window.currentNodeSystem) {
+                alert('No node system found!');
+                return;
+            }
+
+            const nodeSystem = window.currentNodeSystem;
+
+            // Clear current network
+            nodeSystem.nodes = [];
+            nodeSystem.connections = [];
+            nodeSystem.selectedNodes.clear();
+            nodeSystem.selectedConnections.clear();
+            nodeSystem.nodeLayer.removeChildren();
+            nodeSystem.connectionLayer.removeChildren();
+
+            // Restore nodes
+            const nodeMap = new Map();
+            networkData.nodes.forEach(nodeData => {
+                // Find node definition
+                const nodeDefinition = nodeSystem.nodeDefinitions.find(def => 
+                    def.title === nodeData.definition.title);
+                
+                if (nodeDefinition) {
+                    const newNode = nodeSystem.addNode(nodeDefinition, nodeData.position.x, nodeData.position.y);
+                    newNode.id = nodeData.id;
+                    
+                    // Restore parameters
+                    if (nodeData.definition.params && newNode.definition.params) {
+                        nodeData.definition.params.forEach((savedParam, index) => {
+                            if (newNode.definition.params[index]) {
+                                newNode.definition.params[index].value = savedParam.value;
+                            }
+                        });
+                    }
+                    
+                    nodeMap.set(nodeData.id, newNode);
+                }
+            });
+
+            // Restore connections
+            networkData.connections.forEach(connData => {
+                const fromNode = nodeMap.get(connData.fromNodeId);
+                const toNode = nodeMap.get(connData.toNodeId);
+
+                if (fromNode && toNode) {
+                    const fromPort = fromNode.ports?.outputs?.find(p => p.def?.label === connData.fromPort);
+                    const toPort = toNode.ports?.inputs?.find(p => p.def?.label === connData.toPort);
+
+                    if (fromPort && toPort) {
+                        nodeSystem.createConnection(
+                            fromPort.graphics, fromPort.def, fromNode,
+                            toPort.graphics, toPort.def, toNode
+                        );
+                    }
+                }
+            });
+
+            // Rename current tab to the loaded network name
+            if (nodeSystem.tabSystem && nodeSystem.tabSystem.getActiveTab()) {
+                const activeTab = nodeSystem.tabSystem.getActiveTab();
+                nodeSystem.tabSystem.renameTab(activeTab.id, networkData.name);
+                
+                // Update UI if PixiTabRenderer is available
+                if (window.PixiTabRenderer) {
+                    window.PixiTabRenderer.renderTabs();
+                }
+            } else {
+                // Fallback for emergency tab system
+                const currentTab = document.querySelector('.emergency-tab[style*="background: #4a4a4a"], .emergency-tab[style*="background:#4a4a4a"]');
+                if (currentTab) {
+                    const tabNameSpan = currentTab.querySelector('span');
+                    if (tabNameSpan) {
+                        tabNameSpan.textContent = networkData.name;
+                    }
+                }
+            }
+
+            console.log(`📂 Loaded network: ${networkData.name}`);
+            alert(`Network "${networkData.name}" loaded successfully!`);
+            hideLoadNetworkPopup();
+        };
+
+        window.deleteCustomNetwork = function(networkId) {
+            const customNetworks = getCustomNetworks();
+            const networkData = customNetworks[networkId];
+            
+            if (networkData && confirm(`Delete network "${networkData.name}"?`)) {
+                delete customNetworks[networkId];
+                localStorage.setItem('plexus_custom_networks', JSON.stringify(customNetworks));
+                populateCustomNetworksList();
+                console.log(`🗑️ Deleted network: ${networkData.name}`);
+            }
+        };
+
+        function getCustomNetworks() {
+            try {
+                const stored = localStorage.getItem('plexus_custom_networks');
+                return stored ? JSON.parse(stored) : {};
+            } catch (e) {
+                console.warn('Failed to load custom networks:', e);
+                return {};
+            }
+        }
+
+        function populateCustomNetworksList() {
+            const listContainer = document.getElementById('custom-networks-list');
+            const customNetworks = getCustomNetworks();
+            const networkIds = Object.keys(customNetworks);
+
+            if (networkIds.length === 0) {
+                listContainer.innerHTML = '<p style="text-align: center; color: #666; font-style: italic;">No custom networks saved yet.</p>';
+                return;
+            }
+
+            listContainer.innerHTML = networkIds.map(id => {
+                const network = customNetworks[id];
+                const created = new Date(network.created).toLocaleDateString();
+                const isCustomNode = network.isCustomNode;
+                return `
+                    <div style="
+                        background: rgba(40, 40, 40, 0.6);
+                        border: 1px solid ${isCustomNode ? '#00ff88' : '#666'};
+                        border-radius: 5px;
+                        padding: 10px;
+                        margin-bottom: 10px;
+                        transition: all 0.2s ease;
+                    " onmouseover="this.style.borderColor='${isCustomNode ? '#00ff88' : '#4a9eff'}'" onmouseout="this.style.borderColor='${isCustomNode ? '#00ff88' : '#666'}'">
+                        <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                            <div style="flex: 1;">
+                                <h4 style="margin: 0 0 5px 0; color: ${isCustomNode ? '#00ff88' : '#4a9eff'};">
+                                    ${isCustomNode ? '🔧 ' : ''}${network.name}
+                                </h4>
+                                <p style="margin: 0 0 5px 0; font-size: 11px; color: #999;">${network.description || 'No description'}</p>
+                                <p style="margin: 0; font-size: 10px; color: #666;">
+                                    ${isCustomNode ? 'Custom Node' : 'Network'} • Category: ${network.category} • Created: ${created} • 
+                                    ${network.nodes.length} nodes, ${network.connections.length} connections
+                                    ${isCustomNode ? `<br>Inputs: ${network.customNodeConfig?.inputs?.join(', ') || 'none'} • Outputs: ${network.customNodeConfig?.outputs?.join(', ') || 'none'}` : ''}
+                                </p>
+                            </div>
+                            <div style="display: flex; gap: 5px; margin-left: 10px;">
+                                <button onclick="loadCustomNetwork('${id}')" style="
+                                    background: #4a9eff;
+                                    color: #000;
+                                    border: none;
+                                    padding: 5px 10px;
+                                    border-radius: 3px;
+                                    cursor: pointer;
+                                    font-size: 10px;
+                                    font-family: Monaco, monospace;
+                                ">Load</button>
+                                ${isCustomNode ? `<button onclick="addCustomNodeToGraph('${id}')" style="
+                                    background: #00ff88;
+                                    color: #000;
+                                    border: none;
+                                    padding: 5px 10px;
+                                    border-radius: 3px;
+                                    cursor: pointer;
+                                    font-size: 10px;
+                                    font-family: Monaco, monospace;
+                                ">Add Node</button>` : ''}
+                                <button onclick="deleteCustomNetwork('${id}')" style="
+                                    background: #ff4444;
+                                    color: #fff;
+                                    border: none;
+                                    padding: 5px 10px;
+                                    border-radius: 3px;
+                                    cursor: pointer;
+                                    font-size: 10px;
+                                    font-family: Monaco, monospace;
+                                ">Delete</button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // CREATE custom node definition
+        function createCustomNodeDefinition(name, description, category, nodeSystem) {
+            // Auto-detect inputs and outputs
+            const detected = autoDetectNodePorts();
+            const inputs = detected.inputs;
+            const outputs = detected.outputs;
+            const color = document.getElementById('custom-node-color').value;
+
+            console.log(`🔧 Auto-detected for "${name}":`, {
+                inputs: inputs,
+                outputs: outputs,
+                inputDetails: detected.inputDetails,
+                outputDetails: detected.outputDetails
+            });
+
+            // Create the custom node data structure
+            const customNodeData = {
+                id: Date.now().toString(),
+                name: name,
+                description: description,
+                category: category,
+                created: new Date().toISOString(),
+                version: '1.0',
+                isCustomNode: true,
+                customNodeConfig: {
+                    inputs: inputs,
+                    outputs: outputs,
+                    color: color,
+                    inputDetails: Object.fromEntries(detected.inputDetails),
+                    outputDetails: Object.fromEntries(detected.outputDetails)
+                },
+                nodes: nodeSystem.nodes.map(node => ({
+                    id: node.id,
+                    definition: {
+                        title: node.definition.title,
+                        category: node.definition.category,
+                        params: node.definition.params?.map(param => ({
+                            ...param,
+                            value: param.value
+                        }))
+                    },
+                    position: {
+                        x: node.container.x,
+                        y: node.container.y
+                    }
+                })),
+                connections: nodeSystem.connections?.map(conn => ({
+                    id: conn.id,
+                    fromNodeId: conn.fromNode?.id,
+                    fromPort: conn.fromDef?.label,
+                    toNodeId: conn.toNode?.id,
+                    toPort: conn.toDef?.label
+                })) || []
+            };
+
+            // Save custom node
+            const customNetworks = getCustomNetworks();
+            customNetworks[customNodeData.id] = customNodeData;
+            localStorage.setItem('plexus_custom_networks', JSON.stringify(customNetworks));
+
+            // Create node definition for the node system
+            const nodeDefinition = {
+                title: name,
+                category: category,
+                description: description,
+                color: color,
+                isCustomNode: true,
+                customNodeId: customNodeData.id,
+                inputs: inputs.map(input => ({
+                    label: input,
+                    type: 'any',
+                    defaultValue: null
+                })),
+                outputs: outputs.map(output => ({
+                    label: output,
+                    type: 'any'
+                })),
+                params: [],
+                execute: function(inputs) {
+                    // Custom node execution will run the internal network
+                    return executeCustomNode(customNodeData.id, inputs);
+                }
+            };
+
+            // Add to node definitions if available
+            if (nodeSystem.nodeDefinitions) {
+                nodeSystem.nodeDefinitions.push(nodeDefinition);
+            }
+
+            // Save node definition to localStorage for persistence
+            const customNodeDefinitions = getCustomNodeDefinitions();
+            customNodeDefinitions[customNodeData.id] = nodeDefinition;
+            localStorage.setItem('plexus_custom_node_definitions', JSON.stringify(customNodeDefinitions));
+
+            // Rename current tab to the network name
+            if (nodeSystem.tabSystem && nodeSystem.tabSystem.getActiveTab()) {
+                const activeTab = nodeSystem.tabSystem.getActiveTab();
+                nodeSystem.tabSystem.renameTab(activeTab.id, name);
+                
+                // Update UI if PixiTabRenderer is available
+                if (window.PixiTabRenderer) {
+                    window.PixiTabRenderer.renderTabs();
+                }
+            } else {
+                // Fallback for emergency tab system
+                const currentTab = document.querySelector('.emergency-tab[style*="background: #4a4a4a"], .emergency-tab[style*="background:#4a4a4a"]');
+                if (currentTab) {
+                    const tabNameSpan = currentTab.querySelector('span');
+                    if (tabNameSpan) {
+                        tabNameSpan.textContent = name;
+                    }
+                }
+            }
+
+            console.log(`🔧 Created custom node: ${name}`);
+            alert(`Custom node "${name}" created successfully!\nIt can now be used in other graphs.`);
+            hideSaveNetworkPopup();
+        }
+
+        // GET custom node definitions
+        function getCustomNodeDefinitions() {
+            try {
+                const stored = localStorage.getItem('plexus_custom_node_definitions');
+                return stored ? JSON.parse(stored) : {};
+            } catch (e) {
+                console.warn('Failed to load custom node definitions:', e);
+                return {};
+            }
+        }
+
+        // EXECUTE custom node (placeholder for now)
+        function executeCustomNode(customNodeId, inputs) {
+            console.log(`⚡ Executing custom node: ${customNodeId} with inputs:`, inputs);
+            // This would run the internal network and return outputs
+            // For now, just return empty outputs
+            return {};
+        }
+
+        // ADD custom node to current graph
+        window.addCustomNodeToGraph = function(networkId) {
+            const customNetworks = getCustomNetworks();
+            const networkData = customNetworks[networkId];
+
+            if (!networkData || !networkData.isCustomNode) {
+                alert('Custom node not found!');
+                return;
+            }
+
+            if (!window.currentNodeSystem) {
+                alert('No node system found!');
+                return;
+            }
+
+            // Create node definition from custom node
+            const nodeDefinition = {
+                title: networkData.name,
+                category: networkData.category,
+                description: networkData.description,
+                color: networkData.customNodeConfig?.color || '#4CAF50',
+                isCustomNode: true,
+                customNodeId: networkData.id,
+                inputs: (networkData.customNodeConfig?.inputs || []).map(input => ({
+                    label: input,
+                    type: 'any',
+                    defaultValue: null
+                })),
+                outputs: (networkData.customNodeConfig?.outputs || []).map(output => ({
+                    label: output,
+                    type: 'any'
+                })),
+                params: []
+            };
+
+            // Add node to current graph
+            const nodeSystem = window.currentNodeSystem;
+            const newNode = nodeSystem.addNode(nodeDefinition, 100, 100);
+
+            console.log(`🔧 Added custom node to graph: ${networkData.name}`);
+            hideLoadNetworkPopup();
+        };
+
+        // 🎮 SLIDING PREVIEW TAB SYSTEM
+        // EXACT copy from preview_window.html with sliding functionality
+        function initWebGLPreviewSystem() {
+            console.log('🔄 Initializing WebGL Preview System...');
+            
+            // MODULAR WEBGL WINDOW SYSTEM
+            const previewTab = document.getElementById('preview-tab');
+            
+            if (!previewTab) {
+                console.error('❌ Preview tab not found!');
+                return;
+            }
+            
+            console.log('✅ Preview tab found:', previewTab);
+
+            
+            // Initialize WebGL preview system
+            previewTab.onclick = () => {
+                console.log('🎮 Preview tab clicked!');
+                console.log('WebGLPreview available:', !!window.WebGLPreview);
+                
+                if (window.WebGLPreview) {
+                    console.log('Current visibility:', window.WebGLPreview.isVisible);
+                    
+                    if (window.WebGLPreview.isVisible) {
+                        console.log('🔄 Hiding WebGL preview...');
+                        window.WebGLPreview.hide();
+                        // Remove active state from button
+                        previewTab.style.background = 'linear-gradient(135deg, #2a2a2a, #1a1a1a)';
+                        previewTab.style.borderColor = '#444';
+                    } else {
+                        console.log('🔄 Showing WebGL preview...');
+                        window.WebGLPreview.show().catch(error => {
+                            console.error('❌ Failed to show WebGL preview:', error);
+                        });
+                        // Add active state to button
+                        previewTab.style.background = 'linear-gradient(135deg, #4a9eff, #3a7ecc)';
+                        previewTab.style.borderColor = '#4a9eff';
+                    }
+                } else {
+                    console.error('❌ WebGL Preview system not loaded! Checking window object...');
+                    console.log('Available on window:', Object.keys(window).filter(k => k.includes('WebGL') || k.includes('Preview')));
+                }
+            };
+            
+            // TOOLBAR MINIMIZE FUNCTIONALITY
+            let toolbarMinimized = false;
+            const toolbar = document.getElementById('right-toolbar');
+            const minimizeBtn = document.getElementById('minimize-toolbar');
+            
+            minimizeBtn.onclick = () => {
+                toolbarMinimized = !toolbarMinimized;
+                if (toolbarMinimized) {
+                    toolbar.classList.add('minimized');
+                } else {
+                    toolbar.classList.remove('minimized');
+                }
+            };
+            
+            // TOOLBAR BUTTON HOVER EFFECTS
+            const toolbarButtons = document.querySelectorAll('.toolbar-button-placeholder');
+            toolbarButtons.forEach(btn => {
+                btn.addEventListener('mouseenter', () => {
+                    if (!toolbarMinimized) {
+                        btn.style.borderColor = '#555';
+                    }
+                });
+                btn.addEventListener('mouseleave', () => {
+                    btn.style.borderColor = '#333';
+                });
+            });
+            
+            console.log('✅ Professional Right Toolbar System initialized');
+        }
+        
+        // Initialize when DOM is ready AND after a short delay to ensure all scripts have loaded
+        document.addEventListener('DOMContentLoaded', () => {
+            // Small delay to ensure WebGLPreview.js has loaded and executed
+            setTimeout(() => {
+                initWebGLPreviewSystem();
+            }, 500);
+        });
+    </script>
+</body>
+</html>
